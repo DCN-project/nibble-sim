@@ -1,7 +1,7 @@
 # nibble-sim
 
 ## About
-A simulator to implement peer-to-peer communication strategies between 4 nodes in a network.
+A simulator to implement peer-to-peer communication strategies between 4^n nodes in a network.
 
 #### Authors
 | Roll No. | Name |
