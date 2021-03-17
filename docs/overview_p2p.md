@@ -57,6 +57,13 @@ messages, and they also act as gateways to receive responses from the network. T
 - Ensuring that viruses are not introduced to the network is the responsibility of each individual node
 - Since there is no way to authenticate the data being transferred around P2P networks, illegal material may be shared
 
+### On overlay network
+> Source: Wikipedia
+
+An overlay network is a computer network that is layered on top of another network. Nodes in the overlay network can be thought of as being connected by virtual or logical links, each of which corresponds to a path, perhaps through many physical links, in the underlying network. For example, distributed systems such as peer-to-peer networks and client-server applications are overlay networks because their nodes run on top of the Internet.
+
+The Internet was originally built as an overlay upon the telephone network, while today (through the advent of VoIP), the telephone network is increasingly turning into an overlay network built on top of the Internet.
+
 
 [Back to home](./Home.md)
 
