@@ -73,3 +73,5 @@ pairs as necessary to keep them alive.
     1. some of the k nodes that initially get a key-value pair when it is published may leave the network.
     2. new nodes may join the network with IDs closer to some published key than the nodes on which the key-value pair was originally published.
 - In both cases, the nodes with a key-value pair must republish it so as once again to ensure it is available on the k nodes closest to the key.
+
+[Back to home](./Home.md)

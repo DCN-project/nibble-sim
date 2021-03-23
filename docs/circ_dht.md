@@ -10,14 +10,16 @@
 - The peer then gets the value from it's hash table and sends it directly to the initiator of the query.
 - The time complexity is *O(N)* on average to resolve a query, where *N* is the number of peers. **(Big 
 disadvantage)**
-    - The complexity can be reduced if each peer keeps a track of IP addresses of it's predecessor, successor, and shortcuts (called **circular DHT with shortcuts**). It is possible to design shortcuts such that the total messages of sent to resolve a query is *O(log N)* and the number of neighbors a peer has is *O(log N)*.
+    - The complexity can be reduced if each peer keeps a track of IP addresses of it's predecessor, successor, and shortcuts (called **circular DHT with shortcuts**). It is possible to design shortcuts such that the total messages of sent to resolve a query is *O(log N)* and the number of neighbors a peer has is *O(log N)* (this is done in Chord).
 
 ### Handling peer churn
-- Each peer knows the address of its two successors
-- Each peer periodically pings its two successors to check its aliveness
-- If the immediate successor leaves, chose next successor as new immediate successor
+- Each peer knows the address of its two successors.
+- Each peer periodically pings its two successors to check its aliveness.
+- If the immediate successor leaves, chose next successor as new immediate successor.
 
+Click [here](./circ_dht_impl.md) for implementation notes.
 
+[Back to home](./Home.md)
 
 ### References
 - [Link 1](https://www.youtube.com/watch?v=-UU_ugiPZ9k)

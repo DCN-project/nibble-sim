@@ -39,8 +39,8 @@ Hence, we need a more efficient solution to this problem.
 Navigate through the following pages describing various ways to implement a DHT:
 1. [Circular DHT](./circ_dht.md)
 2. [Kademlia](./kademlia.md)
-3. [CAN](./on_can.md)
 
+[Back to home](./Home.md)
 
 ### References
 - [Link 1](https://www.youtube.com/watch?v=A5Y4HcTp-Ks)
