@@ -37,13 +37,17 @@
 
 ### Node leaving the network
 - Whenever a node (n) leaves the network, keys assigned to (n) will be reassigned to it's successor.
+- The routing table of it's predecessor is also updated.
+
+### Resolving query
+![query_resolve](./images/query_resolve.jpg)
+- The IP address of the node initiating the query also flows with the query request.
 
 ### FAQs
-Q1. Why should a node (n) store the IP address of its successor in it's routing table?
+**Q1.** Why should a node (n) store the IP address of its successor in it's routing table?
 
-A1. Given that the nodes in circular DHT are arranged in an identifier circle, if node (n) does not store information about its successor, it won't know where to look-up for keys that are not stored in it. The circular network will not be able to form in this case.
+**A1.** Given that the nodes in circular DHT are arranged in an identifier circle, if node (n) does not store information about its successor, it won't know where to look-up for keys that are not stored in it. The circular network will not be able to form in this case.
 
-Q2. Why should a node (n) also store the IP address of its predecessor? Isn't it redundant?
+**Q2.** Why should a node (n) also store the IP address of its predecessor?
 
-A2. Consider the network in the below state:
-![faq_2-example](./images/faq_q2-example.jpg)
+**A2.** Storing predecessor helps in moving messages around the circle in both the directions.
