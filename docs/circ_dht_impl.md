@@ -43,6 +43,10 @@
 ![query_resolve](./images/query_resolve.jpg)
 - The IP address of the node initiating the query also flows with the query request.
 
+### Log server (only for simulation)
+- To better understand how communication is happening between the peers in the network, a copy of every message that a peer sends to other peer is sent to the **log server**. The log server is just another terminal acting as a server and receiving a copy of messages and displaying them. Additional functionality to store the logs into a file can be added (depends upon time constraints).
+- Each peer in the simulation would be a terminal. Hence, message received or sent by the peer would be displayed on the terminal of each peer.
+
 ### FAQs
 **Q1.** Why should a node (n) store the IP address of its successor in it's routing table?
 
