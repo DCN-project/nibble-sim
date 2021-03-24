@@ -40,8 +40,8 @@ Navigate through the following pages describing various ways to implement a DHT:
 1. [Circular DHT](./circ_dht.md)
 2. [Kademlia](./kademlia.md)
 
-[Back to home](./Home.md)
-
 ### References
 - [Link 1](https://www.youtube.com/watch?v=A5Y4HcTp-Ks)
 - [Link 2](https://www.youtube.com/watch?v=-UU_ugiPZ9k)
+
+[Back to home](./Home.md)
