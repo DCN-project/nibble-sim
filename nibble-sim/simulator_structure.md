@@ -13,8 +13,6 @@ There are two main components that make up nibble-sim:
 
 ![log_server_role](../docs/images/log_server_role.jpg)
 
-[Back to home](./Home.md)
-
 ## Directory details
 - The `common` directory contains two python modules implementing the main components of nibble-sim:
     1. `log_server.py`: Manages log messages for debugging and observing the communication in the network.
@@ -22,3 +20,5 @@ There are two main components that make up nibble-sim:
 - `circular_dht` is an example of P2P protocol implemented on nibble-sim.
     - To append a new protocol to nibble-sim, the files related to the protocol must be placed in a separate and dedicated folder.
 - `nibble_sim.py` is the main script initiating nibble-sim.
+
+[Back to home](../docs/Home.md)
