@@ -23,7 +23,6 @@ if __name__ == '__main__':
     
     while True:
         try:
-            
             cmd = input()
             if cmd == 'send':
                 msg = input("Enter the message: ")
@@ -32,5 +31,7 @@ if __name__ == '__main__':
                 node.ConnAndSend(msg, host, int(portNo))
 
         except KeyboardInterrupt:
+            node.close()
             sys.exit()
+            print("[KEYBOARD INTERRUPT] Closing the node")
             break

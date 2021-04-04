@@ -114,7 +114,7 @@ class nodeObject:
         try:    
             if not self.clientFlag:
                 self.sock[1] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                
+
             self.sock[1].connect((host, port))
             self.sock[1].send(msg.encode(self.msgFormat))
 
@@ -130,6 +130,15 @@ class nodeObject:
         self.sock[1].close()
         self.clientFlag = False
 
+
+    '''
+    Closes all the sockets 
+    '''
+    def close(self):
+        self.shutdown = True
+        self.sock[0].close()
+        if self.clientFlag:
+            self.sock[1].close()
 
 
   
