@@ -12,5 +12,8 @@ class LogServer(Node):
         logging.basicConfig(level=logging.INFO)
         self.setupNode(self.LOG_SERVER_PORT)
 
+    def sendMsg(self):
+        pass
+    
     def processRqst(self, msg):
         logging.info(msg)

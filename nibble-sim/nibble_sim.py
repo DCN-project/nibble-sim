@@ -46,7 +46,7 @@ if __name__ == '__main__':
                 if cmd == 'S':
                     msg = input("Enter the message: ")
                     portNo = input("Enter the target port number: ")
-                    node.send(msg, int(portNo))
+                    node.sendMsg(msg, int(portNo))
                 else:
                     print("Invalid choice!")
 

@@ -123,10 +123,22 @@ class Node(ABC):
                 Message string received by the node.
         """
         pass
+    
+    @abstractmethod
+    def sendMsg(self, msg, nodeId):
+        """
+            Sends message to a nodeID and to LogServer
+
+            Parameters
+            ----------
+            msg : str
+            nodeID : str
+        """
+        pass
 
     def send(self, msg, port, waitReply=False):
         '''
-            Connect to a node and send message.
+            Connect to a node and send message. (Low level function)
 
             Parameters
             ----------
@@ -136,6 +148,11 @@ class Node(ABC):
                 Port number to which message must be sent
             waitReply : bool
                 To wait or not to wait for the reply. Default: False
+            
+            Returns
+            -------
+            success : bool
+                True if message was sent successfully; else False
         '''
         try:    
             if not self.clientFlag:
@@ -146,12 +163,19 @@ class Node(ABC):
 
             if waitReply:
                 print(self.sock[1].recv(1024).decode(self.MSG_FORMAT))
+            
+            return True
 
         except KeyboardInterrupt:
             logging.error("[ERROR] Keyboard interrupt detected")
+            return False
         
         except socket.error as msg:
-            logging.error("[ERROR] Cannot send message to the target node: " + str(msg))
+            logging.error("[ERROR] Cannot send message to the target node: " + str(port))
+            if (port == self.LOG_SERVER_PORT):
+                logging.fatal("Log server has not been instantiated. Exiting node ...")
+                self.close()
+            return False
         
         finally:
             self.sock[1].close()
