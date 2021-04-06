@@ -3,7 +3,7 @@ import socket
 import sys
 import time
 import threading
-
+import logging
 
 """ 
     Class with functions to create & handle a node.
@@ -11,22 +11,23 @@ import threading
 class Node:
 
     # Constructor
-    def __init__(self, portNo):
-        self.HOST = '127.0.0.1'      # Host (IP Address)
-        self.portNo = portNo       # port number
+    def __init__(self, portNo, logLevel):
+        """
+            Instantiates a node that listens to the given port number logs messages from the 
+            level logLevel onto the terminal of the node.
+
+            Parameters
+            ----------
+            portNo : int
+            logLevel : int 
+        """
+        logging.basicConfig(level=logLevel)
+        self.setupNode(portNo)
         #self.nodeID = nodeID      # Node ID (lies between 1 to number of nodes in the peer network)
-        self.sock = []        # Socket object [serveSocket, clientSocket]
-        self.allConn = []     # Holds the objects of all the connections
-        self.allAddr = []     # Holds the address of all the connections
-        self.prevNode = {}    # Dictionary -> nodeID: [host, portNO]
-        self.nextNode = {}    # Dictionary -> nodeID: [host, portNO]
-        self.shutdown = False
-        self.clientFlag = True
-
-        self.msgFormat = 'utf-8'
-
-        self.__createSocket()
-        self.__bindSocket(2)
+        
+        # self.prevNode = {}    # Dictionary -> nodeID: [host, portNO]
+        # self.nextNode = {}    # Dictionary -> nodeID: [host, portNO]
+        
 
         # Check Peer status, if there are active nodes in the peer, ping them for joining 
         # the network. If not, you are instantiating a peer network with first active node
@@ -38,12 +39,37 @@ class Node:
 
         #     self.connectNode(activeHost, activePort)
 
-        # Creating a thread for server
-        self.serverThread = threading.Thread(target=self.__acceptConn)
-        self.serverThread.daemon = True
-        self.serverThread.start()
+    def setupNode(self, portNo):
+        """
+            Sets the initial values of the attributes. Must be called by every derived class.
 
-    def __createSocket(self):
+            Parameters
+            ----------
+            portNo : int
+                Port number on which the node listens
+            terminalLog : bool
+                To display log in the node's terminal or not
+        """
+        self.portNo = portNo                    # port number
+
+        self.HOST            = '127.0.0.1'      # Constant host IP address
+        self.LOG_SERVER_PORT = 31418            # constant port number of log server
+
+        self.sock = []        # Socket object [serverSocket, clientSocket]
+        self.shutdown = False
+        self.clientFlag = True
+
+        self.msgFormat = 'utf-8'
+
+        self.createSocket()
+        self.bindSocket(2)
+
+        # Creating a thread to listen to requests
+        self.listener = threading.Thread(target=self.listenRqsts)
+        self.listener.daemon = True
+        self.listener.start()
+
+    def createSocket(self):
         '''
             create socket (self)
         ''' 
@@ -52,56 +78,63 @@ class Node:
             self.sock.append(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
 
         except socket.error as msg:
-            print("[ERROR] Socket creation error: " + str(msg))
+            logging.error("Socket creation error: " + str(msg))
     
-    def __bindSocket(self, listenNo):
+    def bindSocket(self, listenNo):
         ''' 
             Bind socket (self, listenNo)
             listenNo ---> Number of connections it will accept 
         '''
         try:
-            print("[PORT BINDED] Binding the Port: " + str(self.portNo))
+            logging.debug("[PORT BINDED] Binding the Port: " + str(self.portNo))
             self.sock[0].bind((self.HOST, self.portNo))
             self.sock[0].listen(listenNo)
 
         except socket.error as msg:
-            print("[ERROR] Socket binding error: " + str(msg))
+            logging.error("[ERROR] Socket binding error: " + str(msg))
 
-    def __acceptConn(self):
+    def listenRqsts(self):
         '''
             Accept connection from other nodes (self)
             Makes 5 attempts to check and accept a connection
         '''
-        for i in self.allConn:
-            i.close()
 
-        del self.allConn[:]
-        del self.allAddr[:]
+        allConn = []
+        allAddr = []
 
         while not self.shutdown:
             try:
                 conn, address = self.sock[0].accept()
                 self.sock[0].setblocking(1)  # prevents timeout
 
-                self.allConn.append(conn)
-                self.allAddr.append(address)
+                allConn.append(conn)
+                allAddr.append(address)
+                
+                logging.debug("[NEW CONNECTION] Connection has been established to :" + address[0])
 
-                print("[NEW CONNECTION] Connection has been established to :" + address[0])
-
-                for i in range(len(self.allConn)):
-                    data = self.allConn[i].recv(1024)
+                for i in range(len(allConn)):
+                    data = allConn[i].recv(1024)
                     if len(data) > 0:
-                        print("[NEW MESSAGE] Message received from Node-", self.allAddr[i], " : ", data)
+                        logging.debug("[NEW MESSAGE] Message received from Node-" + str(allAddr[i]) + " : " + str(data)[2:-1])
+                        self.processRqst(str(data)[2:-1])
 
             except KeyboardInterrupt:
-                print("[ERROR] accepting connections. Trying again...")
+                logging.error("[ERROR] accepting connections. Trying again...")
 
             except socket.error as msg:
-                print("[ERROR] Cannot accept any connections: " + str(msg))
+                logging.error("[ERROR] Cannot accept any connections: " + str(msg))
+                self.close()
 
         self.sock[0].close()
-        print("Socket closed")
-            
+        logging.debug("Socket closed")
+
+    def processRqst(self, msg):
+        """
+            Processes the request messages obtained by the node. Should only be called from within
+            listenRqsts function.
+        """
+        print("MSG: " + msg)
+
     def send(self, msg, port, waitReply=False):
         '''
             Connect to a node and send message.
@@ -126,13 +159,14 @@ class Node:
                 print(self.sock[1].recv(1024).decode(self.msgFormat))
 
         except KeyboardInterrupt:
-            print("[ERROR] Keyboard interrupt detected")
+            logging.error("[ERROR] Keyboard interrupt detected")
         
         except socket.error as msg:
-            print("[ERROR] Cannot send message to the target node:", str(msg))
+            logging.error("[ERROR] Cannot send message to the target node: " + str(msg))
         
-        self.sock[1].close()
-        self.clientFlag = False
+        finally:
+            self.sock[1].close()
+            self.clientFlag = False
 
     def close(self):
         '''
