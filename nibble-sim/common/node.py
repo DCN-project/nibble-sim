@@ -4,70 +4,45 @@ import sys
 import time
 import threading
 import logging
+from abc import ABC, abstractmethod
 
 """ 
-    Class with functions to create & handle a node.
+    Abstract class with functions to create & handle a node.
 """
-class Node:
+class Node(ABC):
 
-    # Constructor
-    def __init__(self, portNo, logLevel):
+    def __init__(self):
         """
-            Instantiates a node that listens to the given port number logs messages from the 
-            level logLevel onto the terminal of the node.
-
-            Parameters
-            ----------
-            portNo : int
-            logLevel : int 
+           Must be called by every derived class in the beginning as
+           super.__init__()
         """
-        logging.basicConfig(level=logLevel)
-        self.setupNode(portNo)
-        #self.nodeID = nodeID      # Node ID (lies between 1 to number of nodes in the peer network)
-        
-        # self.prevNode = {}    # Dictionary -> nodeID: [host, portNO]
-        # self.nextNode = {}    # Dictionary -> nodeID: [host, portNO]
-        
-
-        # Check Peer status, if there are active nodes in the peer, ping them for joining 
-        # the network. If not, you are instantiating a peer network with first active node
-        # if self.peerStatus:
-        #     print("Please enter the host of an active nodes in peer: ")
-        #     activeHost = input()
-        #     print("Please enter the port number of the node: ")
-        #     activePort = input()
-
-        #     self.connectNode(activeHost, activePort)
+        self.HOST            = '127.0.0.1'      # Constant host IP address
+        self.LOG_SERVER_PORT = 31418            # Constant port number of log server
+        self.MSG_FORMAT = 'utf-8'               # Constant message format
+        self.shutdown = False                   # Flag to indicate node shutdown
 
     def setupNode(self, portNo):
         """
-            Sets the initial values of the attributes. Must be called by every derived class.
+            Sets the initial values of the attributes. Must be called by every derived class in __init__
 
             Parameters
             ----------
             portNo : int
                 Port number on which the node listens
-            terminalLog : bool
-                To display log in the node's terminal or not
         """
         self.portNo = portNo                    # port number
 
-        self.HOST            = '127.0.0.1'      # Constant host IP address
-        self.LOG_SERVER_PORT = 31418            # constant port number of log server
-
         self.sock = []        # Socket object [serverSocket, clientSocket]
-        self.shutdown = False
         self.clientFlag = True
 
-        self.msgFormat = 'utf-8'
-
         self.createSocket()
-        self.bindSocket(2)
-
-        # Creating a thread to listen to requests
-        self.listener = threading.Thread(target=self.listenRqsts)
-        self.listener.daemon = True
-        self.listener.start()
+        if (self.bindSocket(2)):
+            # Creating a thread to listen to requests
+            self.listener = threading.Thread(target=self.listenRqsts)
+            self.listener.daemon = True
+            self.listener.start()
+        else:
+            self.close()
 
     def createSocket(self):
         '''
@@ -84,14 +59,22 @@ class Node:
         ''' 
             Bind socket (self, listenNo)
             listenNo ---> Number of connections it will accept 
+
+            Returns
+            -------
+            success : bool
+                True if the socket is successfully binded to given port number; else False 
         '''
         try:
             logging.debug("[PORT BINDED] Binding the Port: " + str(self.portNo))
             self.sock[0].bind((self.HOST, self.portNo))
             self.sock[0].listen(listenNo)
+            return True
 
         except socket.error as msg:
             logging.error("[ERROR] Socket binding error: " + str(msg))
+            logging.info("Cannot bind to port number: " + str(self.portNo) + " | Exiting node...")
+            return False
 
     def listenRqsts(self):
         '''
@@ -128,12 +111,18 @@ class Node:
         self.sock[0].close()
         logging.debug("Socket closed")
 
+    @abstractmethod
     def processRqst(self, msg):
         """
             Processes the request messages obtained by the node. Should only be called from within
-            listenRqsts function.
+            listenRqsts function. Must be defined by each of the child class.
+
+            Parameters
+            ----------
+            msg : str
+                Message string received by the node.
         """
-        print("MSG: " + msg)
+        pass
 
     def send(self, msg, port, waitReply=False):
         '''
@@ -153,10 +142,10 @@ class Node:
                 self.sock[1] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
             self.sock[1].connect((self.HOST, port))
-            self.sock[1].send(msg.encode(self.msgFormat))
+            self.sock[1].send(msg.encode(self.MSG_FORMAT))
 
             if waitReply:
-                print(self.sock[1].recv(1024).decode(self.msgFormat))
+                print(self.sock[1].recv(1024).decode(self.MSG_FORMAT))
 
         except KeyboardInterrupt:
             logging.error("[ERROR] Keyboard interrupt detected")
@@ -176,3 +165,7 @@ class Node:
         self.sock[0].close()
         if self.clientFlag:
             self.sock[1].close()
+
+if __name__=='__main__':
+    print('Abstract class. Cannot run the module.')
+    pass
