@@ -6,6 +6,8 @@
 
 > The nibble-sim simulated in it's current state can only be used on a single computer. The capability of using the same software across different physical devices is lacking but it can be easily incorporated in the set framework.
 
+> `lportNo` refers to listening port number.
+
 ### Hash function
 - A consistent hash function is used to assign each node and key an *m*-bit identifier. This hash function is **SHA-1**.
 - A node's identifier is chosen by hashing the node's IP address&|/port number, while a key identifier is produced by hashing the key.
@@ -24,38 +26,76 @@
     - Similar explanation is valid for assignment of key [6]=> *successor([6]) = 0*.
 
 ### Routing information at each node
-- Each node knows the IP address of it's successor and it's predecessor in the network.
+- Each node knows the IP address&|/port number of it's successor and it's predecessor in the network.
 - The above information is stored in the routing table of the node.
 
 ### Node joining the network
-- For a node to join the network, it sends a *join* request to any existing node's IP address. It is assumed that there exists an external mechanism through which the IP address&|/port number of a node (n') in the network is known to a new joinee, *n*. The following details are sent in the *join* request:
+- For a node to join the network, it sends a *join* request (<JOIN-NETWORK\>) to any existing node's IP address&|/port number. It is assumed that there exists an external mechanism through which the IP address&|/port number of a node (n') in the network is known to a new joinee, *n*. The following details are sent in the <JOIN-NETWORK\>:
     1. Port number on which *n* listens
 
-    After (n') receives the *join* request, the following steps are executed:
-    1. (n') calculates the hash of the IP address&|/port number of *n*.
-    2. Compares the hash(n) with the hash of it's own IP address&|/port number:
-        ```
-        if (hash(n) > hash(n')):
-            if (hash(n) < hash(successor(n'))):
-                - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR>:
-                    - IP address&|/port number of (n') as (n)'s predecessor
-                    - IP address&|/port number of (n')'s successor ( - n'') as (n)'s successor
-                - (n') sends a message to (n'') with IP address&|/port number of (n) as (n'')'s predecessor <UPDATE-PREDECESSOR>
-                - (n') updates it's routing table with (n) as it's successor
-            else:
-                - (n') sends (n'') <FIND-SUCCESSOR>:
-                    - IP address&|/port number of (n) and requests (n'') to find successor of (n)
-        else (hash(n) < hash(n')):
-            if (hash(n) > hash(predecessor(n'))):
-                - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR>:
-                    - IP address&|/port number of (n') as (n)'s successor
-                    - IP address&|/port number of (n')'s predecessor ( - 'n) as (n)'s predecessor
-                - (n') sends a message to ('n) with IP address&|/port number of (n) as ('n)'s successor <SUCCESSOR-UPDATE>
-            else:
-                - (n') sends ('n) <FIND-PREDECESSOR>:
-                    - IP address&|/port number of (n) and requests ('n) to find predecessor of (n)
-        ```
-    3. Transferring of keys: (n) can become the successor only for keys that were previously the responsibility of the node immediately following (n). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys. \<TRANSFER-KEY\>
+#### After receiving <JOIN-NETWORK\>
+After (n') receives the *join* request, the following steps are executed:
+1. (n') calculates the hash of the IP address&|/port number of *n*.
+2. Compares the hash(n) with the hash of it's own IP address&|/port number:
+- if (hash(n) > hash(n')):
+    - if (hash(n) < hash(successor(n'))):
+        - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
+            - IP address&|/port number of (n') as (n)'s predecessor
+            - IP address&|/port number of (n')'s successor ( - n'') as (n)'s successor
+        - (n') sends <UPDATE-PREDECESSOR\> to (n'') with IP address&|/port number of (n) as (n'')'s predecessor 
+        - (n') updates it's routing table with (n) as it's successor
+    - else:
+        - (n') sends (n'') <FIND-SUCCESSOR\>:
+            - IP address&|/port number of (n) and requests (n'') to find successor of (n)
+- else (hash(n) < hash(n')):
+    - if (hash(n) > hash(predecessor(n'))):
+        - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
+            - IP address&|/port number of (n') as (n)'s successor
+            - IP address&|/port number of (n')'s predecessor ( - 'n) as (n)'s predecessor
+        - (n') sends a message to ('n) with IP address&|/port number of (n) as ('n)'s successor <UPDATE-SUCCESSOR\>
+    - else:
+        - (n') sends ('n) <FIND-PREDECESSOR\>:
+            - IP address&|/port number of (n) and requests ('n) to find predecessor of (n)
+3. Transferring of keys
+    - (n) can become the successor only for keys that were previously the responsibility of the node immediately following (n). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys.
+    - Hence, only after receiving <UPDATE-SUCCESSOR-PREDECESSOR\>, (n) sends <TRANSFER-KEYS\> to it's successor.
+
+#### After receiving <TRANSFER-KEYS\>
+- Node compares the hash of the keys it has with the hash of the lportNo it receives with the RPC.
+    - If the hash of the key is more than or equal to the hash of the lportNo, the key and it's value are sent along with <STORE-KEY\> RPC.
+    - Else, nothing is done.
+
+#### After receiving <STORE-KEY\>
+- Node compares the hash of the key with it's predecessor:
+    - If it is more than it's predecessor, continue to check.
+    - Else, send <STORE-KEY\> RPC with the same key to it's predecessor.
+
+- Node compares the hash of the key with it's own hash (hash of it's lportNo):
+    - If hash of key is more, then the key is stored in node's own hashtable. Send a <GET-VALUE\> RPC to the node that wishes to store the key.
+    - Else, send <STORE-KEY\> RPC with the same key to it's successor.
+
+#### After receiving <UPDATE-PREDECESSOR\> or <UPDATE-SUCCESSOR\> 
+- A node update's it's routing table with the node ID and port of with the updated predecessor/successor.
+
+#### After receiving <FIND-SUCCESSOR\> 
+- Compare the hash of lportNo (p) for which successor must be found with hash of node's lportNo (q):
+    - if q > p, then send the lportNo of q's predecessor as predecessor of p and q itself as p's successor as <UPDATE-SUCCESSOR-PREDECESSOR\> to p.
+    - else, send <FIND-SUCCESSOR\> to q's successor with p in RPC.
+
+#### After receiving <FIND-PREDECESSOR\> 
+- Compare the hash of lportNo (p) for which predecessor must be found with hash of node's lportNo (q):
+    - if q < p, then send the lportNo of q's successor as successor of p and q itself as p's predecessor as <UPDATE-SUCCESSOR-PREDECESSOR\> to p.
+    - else, send <FIND-PREDECESSOR\> to q's predecessor with p in RPC.
+
+#### After receiving <GET-VALUE\>
+- Send (key, value) of the key to the lportNo from <GET-VALUE\> RPC as a part of <STORE-KEY-VALUE\>.
+- Delete the (key,value) pair in the node's own hashtable.
+
+#### After receiving <STORE-KEY-VALUE\>
+- Store the (key, value) pair in the node's hashtable.
+
+#### Use of <INVALID-RPC\>
+- If a node receives an invalid RPC, then the node sends <INVALID-RPC\> with all the information it receives (may be corrupted) to LogServer. 
 
 ### Node leaving the network
 - Whenever a node (n) leaves the network, keys assigned to (n) will be reassigned to it's successor.
