@@ -35,8 +35,7 @@ if __name__ == '__main__':
         node = LogServer()
         node.run()
     elif node_type == 'P':  # running a peer
-        portNo = input("Port number: ")
-        node = CircularDhtNode(int(portNo))
+        node = CircularDhtNode()
         node.run()
     else:
         print('Invalid node choice! Exiting nibble-sim...')

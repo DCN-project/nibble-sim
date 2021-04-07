@@ -4,9 +4,11 @@
 
 > All node IDs are written within parenthesis while the keys are written in square-brackets.
 
+> The nibble-sim simulated in it's current state can only be used on a single computer. The capability of using the same software across different physical devices is lacking but it can be easily incorporated in the set framework.
+
 ### Hash function
 - A consistent hash function is used to assign each node and key an *m*-bit identifier. This hash function is **SHA-1**.
-- A node's identifier is chosen by hashing the node's IP address, while a key identifier is produced by hashing the key.
+- A node's identifier is chosen by hashing the node's IP address&|/port number, while a key identifier is produced by hashing the key.
 
 ### Assigning keys to nodes
 - Identifiers are ordered in an identifier circle modulo *2^m*.
@@ -26,14 +28,34 @@
 - The above information is stored in the routing table of the node.
 
 ### Node joining the network
-- For a node to join the network, it sends a *join* request to any existing node's IP address. It is assumed that there exists an external mechanism through which the IP address of a node (n') in the network is known to a new joinee, *n*. The following steps are executed once the *join* request is received.
-    1. Get alloted a node ID by hashing the IP address. (n') does this task for new joinee *n*. Now, the new joinee has a node ID (n). In other words:
-        - (n') replies to the *join* request by *n* with the node ID for *n*.
-    2. (n') looks-up for predecessor of (n). The predecessor when found is conveyed to (n).
-    3. Updating the existing nodes about the presence of new node (n). This step can be combined with step (2) as:
-        - (n') would send a special request to its predecessors asking them to look-up for predecessor for *n*. In this request itself, the other nodes in the network learn about the presence of node *n* and update their routing table.
-    4. Transferring of keys: (n) can become the successor only for keys that were previously the responsibility of the node immediately following (n). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys.
-        - IP of the successor of (n) is easily known because (n) knows it's own predecessor. Hence, it asks it's predecessor for the IP address of its successor.
+- For a node to join the network, it sends a *join* request to any existing node's IP address. It is assumed that there exists an external mechanism through which the IP address&|/port number of a node (n') in the network is known to a new joinee, *n*. The following details are sent in the *join* request:
+    1. Port number on which *n* listens
+
+    After (n') receives the *join* request, the following steps are executed:
+    1. (n') calculates the hash of the IP address&|/port number of *n*.
+    2. Compares the hash(n) with the hash of it's own IP address&|/port number:
+        ```
+        if (hash(n) > hash(n')):
+            if (hash(n) < hash(successor(n'))):
+                - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR>:
+                    - IP address&|/port number of (n') as (n)'s predecessor
+                    - IP address&|/port number of (n')'s successor ( - n'') as (n)'s successor
+                - (n') sends a message to (n'') with IP address&|/port number of (n) as (n'')'s predecessor <UPDATE-PREDECESSOR>
+                - (n') updates it's routing table with (n) as it's successor
+            else:
+                - (n') sends (n'') <FIND-SUCCESSOR>:
+                    - IP address&|/port number of (n) and requests (n'') to find successor of (n)
+        else (hash(n) < hash(n')):
+            if (hash(n) > hash(predecessor(n'))):
+                - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR>:
+                    - IP address&|/port number of (n') as (n)'s successor
+                    - IP address&|/port number of (n')'s predecessor ( - 'n) as (n)'s predecessor
+                - (n') sends a message to ('n) with IP address&|/port number of (n) as ('n)'s successor <SUCCESSOR-UPDATE>
+            else:
+                - (n') sends ('n) <FIND-PREDECESSOR>:
+                    - IP address&|/port number of (n) and requests ('n) to find predecessor of (n)
+        ```
+    3. Transferring of keys: (n) can become the successor only for keys that were previously the responsibility of the node immediately following (n). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys. \<TRANSFER-KEY\>
 
 ### Node leaving the network
 - Whenever a node (n) leaves the network, keys assigned to (n) will be reassigned to it's successor.

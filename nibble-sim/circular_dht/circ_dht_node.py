@@ -9,13 +9,9 @@ from common.node import Node
 
 class CircularDhtNode(Node):
 
-    def __init__(self, portNo):
+    def __init__(self):
         super().__init__()
         logging.basicConfig(level=logging.INFO)
-        self.setupNode(portNo)
-
-        # intimate the log server on the addition of node
-        self.sendMsg("Node added. Port: " + str(portNo), self.LOG_SERVER_PORT)
 
     def generateHash(self, key):
         """
@@ -30,6 +26,42 @@ class CircularDhtNode(Node):
             hash : str
         """
         return hashlib.sha1(key.encode())
+
+    def startNewNetwork(self, nodeID, portNo):
+        """
+            Start a new P2P network with user defined nodeID and listens to portNo.
+
+            Parameters
+            ----------
+            nodeID : str
+            portNo : int
+        """
+        self.nodeID = str(nodeID)
+        self.setupNode(portNo)
+
+        # intimate the log server on the addition of node
+        self.sendMsg("New network started by node: "+ self.nodeID + ". Listening on port: " + str(portNo), self.LOG_SERVER_PORT)
+        logging.info("New network started.")
+
+    def joinNetwork(self, nodeID, portNo):
+        """
+            Join an existing P2P network through a node on the network.
+            The way nodeID and portNo are obtained are upto the user and/or P2P protocol.
+
+            Parameters
+            ----------
+            nodeID : str
+                Identifier of the node in the P2P network through which new node wishes to join.
+            portNo : int 
+                Port number on which the existing node is listening.
+        """
+        self.nodeID = str(nodeID)
+        self.setupNode(portNo)
+
+        # intimate the log server on the addition of node
+        self.sendMsg("New network started by node: "+ self.nodeID + ". Listening on port: " + str(portNo), self.LOG_SERVER_PORT)
+
+        pass
 
     def sendMsg(self, msg, nodeId):
         """
@@ -58,6 +90,28 @@ class CircularDhtNode(Node):
         logging.info(msg)
 
     def run(self):
+        """
+            The main function that enables the user interact with the node and hence then P2P network.
+        """
+        print('\nDo you want to start a new network[N] or join an existing one [E]?')
+        user_choice = input('Your choice [N|E]: ')
+        if user_choice == 'N':
+            nodeId = input("Enter the node identifier of your choice: ")
+            port = input("Enter the port on which the node listens: ")
+            try:
+                self.startNewNetwork(nodeId, int(port))
+            except ValueError:  # if the port number by user is not a valid integer
+                print("Invalid port number. Shutting down node...")
+        elif user_choice == 'E':
+            nodeId = input("Enter the node identifier of an existing node: ")
+            port = input("Enter the port on which the existing node listens: ")
+            try:
+                self.joinNetwork(nodeId, int(port))
+            except ValueError:  # if the port number by user is not a valid integer
+                print("Invalid port number. Shutting down node...")
+        else:
+            print('Invalid choice. Shutting down node...')
+
         print("Instantiated node. Listening on port number: ", self.portNo)
         print("*** Type 'S' to send messages *** ")
         while not self.shutdown:

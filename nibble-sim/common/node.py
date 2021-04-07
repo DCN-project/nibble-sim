@@ -19,6 +19,7 @@ class Node(ABC):
         self.HOST            = '127.0.0.1'      # Constant host IP address
         self.LOG_SERVER_PORT = 31418            # Constant port number of log server
         self.MSG_FORMAT = 'utf-8'               # Constant message format
+        self.nodeID = ''
         self.shutdown = False                   # Flag to indicate node shutdown
 
     def setupNode(self, portNo):
@@ -194,6 +195,33 @@ class Node(ABC):
     def run(self):
         """
             Define a while loop that executes till node.shutdown == False.
+        """
+        pass
+
+    @abstractmethod
+    def startNewNetwork(self, nodeID, portNo):
+        """
+            Start a new P2P network with user defined nodeID and listens to portNo.
+
+            Parameters
+            ----------
+            nodeID : str
+            portNo : int
+        """
+        pass
+
+    @abstractmethod
+    def joinNetwork(self, nodeID, portNo):
+        """
+            Join an existing P2P network through a node on the network.
+            The way nodeID and portNo are obtained are upto the user and/or P2P protocol.
+
+            Parameters
+            ----------
+            nodeID : str
+                Identifier of the node in the P2P network through which new node wishes to join.
+            portNo : int 
+                Port number on which the node is listening
         """
         pass
 
