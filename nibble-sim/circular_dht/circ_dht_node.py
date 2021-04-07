@@ -3,6 +3,7 @@
 """
 
 import logging
+import hashlib
 
 from common.node import Node
 
@@ -41,5 +42,19 @@ class CircularDhtNode(Node):
         
     def processRqst(self, msg):
         logging.info(msg)
+
+    def generateHash(self, key):
+        """
+            Generates hash for the given key using SHA-1 algorithm.
+
+            Parameters
+            ----------
+            key : str
+
+            Returns
+            -------
+            hash : str
+        """
+        return hashlib.sha1(key.encode())
 
     pass
