@@ -17,6 +17,20 @@ class CircularDhtNode(Node):
         # intimate the log server on the addition of node
         self.sendMsg("Node added. Port: " + str(portNo), self.LOG_SERVER_PORT)
 
+    def generateHash(self, key):
+        """
+            Generates hash for the given key using SHA-1 algorithm.
+
+            Parameters
+            ----------
+            key : str
+
+            Returns
+            -------
+            hash : str
+        """
+        return hashlib.sha1(key.encode())
+
     def sendMsg(self, msg, nodeId):
         """
             Sends message to a nodeID and to LogServer
@@ -43,18 +57,19 @@ class CircularDhtNode(Node):
     def processRqst(self, msg):
         logging.info(msg)
 
-    def generateHash(self, key):
-        """
-            Generates hash for the given key using SHA-1 algorithm.
+    def run(self):
+        print("Instantiated node. Listening on port number: ", self.portNo)
+        print("*** Type 'S' to send messages *** ")
+        while not self.shutdown:
+            try:
+                cmd = input('Your choice [S]: ')
+                if cmd == 'S':
+                    msg = input("Enter the message: ")
+                    portNo = input("Enter the target port number: ")
+                    self.sendMsg(msg, int(portNo))
+                else:
+                    print("Invalid choice!")
 
-            Parameters
-            ----------
-            key : str
-
-            Returns
-            -------
-            hash : str
-        """
-        return hashlib.sha1(key.encode())
-
-    pass
+            except KeyboardInterrupt:
+                print("[KEYBOARD INTERRUPT]")
+                break

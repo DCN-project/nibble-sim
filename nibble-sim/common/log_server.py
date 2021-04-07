@@ -17,3 +17,7 @@ class LogServer(Node):
     
     def processRqst(self, msg):
         logging.info(msg)
+    
+    def run(self):
+        while not self.shutdown:
+            pass

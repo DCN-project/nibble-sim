@@ -111,31 +111,6 @@ class Node(ABC):
         self.sock[0].close()
         logging.debug("Socket closed")
 
-    @abstractmethod
-    def processRqst(self, msg):
-        """
-            Processes the request messages obtained by the node. Should only be called from within
-            listenRqsts function. Must be defined by each of the child class.
-
-            Parameters
-            ----------
-            msg : str
-                Message string received by the node.
-        """
-        pass
-    
-    @abstractmethod
-    def sendMsg(self, msg, nodeId):
-        """
-            Sends message to a nodeID and to LogServer
-
-            Parameters
-            ----------
-            msg : str
-            nodeID : str
-        """
-        pass
-
     def send(self, msg, port, waitReply=False):
         '''
             Connect to a node and send message. (Low level function)
@@ -189,6 +164,38 @@ class Node(ABC):
         self.sock[0].close()
         if self.clientFlag:
             self.sock[1].close()
+
+    @abstractmethod
+    def processRqst(self, msg):
+        """
+            Processes the request messages obtained by the node. Should only be called from within
+            listenRqsts function. Must be defined by each of the child class.
+
+            Parameters
+            ----------
+            msg : str
+                Message string received by the node.
+        """
+        pass
+    
+    @abstractmethod
+    def sendMsg(self, msg, nodeId):
+        """
+            Sends message to a nodeID and to LogServer
+
+            Parameters
+            ----------
+            msg : str
+            nodeID : str
+        """
+        pass
+
+    @abstractmethod
+    def run(self):
+        """
+            Define a while loop that executes till node.shutdown == False.
+        """
+        pass
 
 if __name__=='__main__':
     print('Abstract class. Cannot run the module.')
