@@ -45,8 +45,8 @@ After (n') receives the *join* request, the following steps are executed:
         - (n') sends <UPDATE-PREDECESSOR\> to (n'') with IP address&|/port number of (n) as (n'')'s predecessor 
         - (n') updates it's routing table with (n) as it's successor
     - else:
-        - (n') sends (n'') <FIND-SUCCESSOR\>:
-            - IP address&|/port number of (n) and requests (n'') to find successor of (n)
+        - (n') sends (n'') <JOIN-NETWORK\>:
+            - The above function repeats itself with n' changed to n''
 - else (hash(n) < hash(n')):
     - if (hash(n) > hash(predecessor(n'))):
         - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
@@ -54,8 +54,8 @@ After (n') receives the *join* request, the following steps are executed:
             - IP address&|/port number of (n')'s predecessor ( - 'n) as (n)'s predecessor
         - (n') sends a message to ('n) with IP address&|/port number of (n) as ('n)'s successor <UPDATE-SUCCESSOR\>
     - else:
-        - (n') sends ('n) <FIND-PREDECESSOR\>:
-            - IP address&|/port number of (n) and requests ('n) to find predecessor of (n)
+        - (n') sends ('n) <JOIN-NETWORK\>:
+            - The above function repeats itself with n' changed to 'n
 3. Transferring of keys
     - (n) can become the successor only for keys that were previously the responsibility of the node immediately following (n). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys.
     - Hence, only after receiving <UPDATE-SUCCESSOR-PREDECESSOR\>, (n) sends <TRANSFER-KEYS\> to it's successor.
@@ -71,21 +71,11 @@ After (n') receives the *join* request, the following steps are executed:
     - Else, send <STORE-KEY\> RPC with the same key to it's predecessor.
 
 - Node compares the hash of the key with it's own hash (hash of it's lportNo):
-    - If hash of key is more, then the key is stored in node's own hashtable. Send a <GET-VALUE\> RPC to the node that wishes to store the key.
+    - If hash of key is less, then the key is stored in node's own hashtable. Send a <GET-VALUE\> RPC to the node that wishes to store the key.
     - Else, send <STORE-KEY\> RPC with the same key to it's successor.
 
 #### After receiving <UPDATE-PREDECESSOR\> or <UPDATE-SUCCESSOR\> 
 - A node update's it's routing table with the node ID and port of with the updated predecessor/successor.
-
-#### After receiving <FIND-SUCCESSOR\> 
-- Compare the hash of lportNo (p) for which successor must be found with hash of node's lportNo (q):
-    - if q > p, then send the lportNo of q's predecessor as predecessor of p and q itself as p's successor as <UPDATE-SUCCESSOR-PREDECESSOR\> to p.
-    - else, send <FIND-SUCCESSOR\> to q's successor with p in RPC.
-
-#### After receiving <FIND-PREDECESSOR\> 
-- Compare the hash of lportNo (p) for which predecessor must be found with hash of node's lportNo (q):
-    - if q < p, then send the lportNo of q's successor as successor of p and q itself as p's predecessor as <UPDATE-SUCCESSOR-PREDECESSOR\> to p.
-    - else, send <FIND-PREDECESSOR\> to q's predecessor with p in RPC.
 
 #### After receiving <GET-VALUE\>
 - Send (key, value) of the key to the lportNo from <GET-VALUE\> RPC as a part of <STORE-KEY-VALUE\>.

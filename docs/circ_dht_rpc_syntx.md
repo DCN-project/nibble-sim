@@ -19,8 +19,6 @@ The meaning of `<data-1>, <data-2>, ..., <data-n>` is dependent on the RPC.
 | **<UPDATE-SUCCESSOR-PREDECESSOR\>** | USP:<sender-lportNo\>:<successor-lportNo\>:<predecessor-lportNo\> |
 | **<UPDATE-SUCCESSOR\>** | US:<sender-lportNo\>:<new-successor-lportNo\>|
 | **<UPDATE-PREDECESSOR\>** | UP:<sender-lportNo\>:<new-predecessor-lportNo\>|
-| **<FIND-SUCCESSOR\>** | FS:<sender-lportNo\>:<find-successor-for-lportNo\>|
-| **<FIND-PREDECESSOR\>** | FP:<sender-lportNo\>:<find-predecessor-for-lportNo\>|
 | **<TRANSFER-KEYS\>** | T:<sender-lportNo\>|
 | **<STORE-KEY\>** | SK:<sender-lportNo\>:<lportNo-node-wanting-to-store\>:<key\>|
 | **<GET-VALUE\>** | G:<sender-lportNo\>:<key-whose-value-is-needed\>|
