@@ -106,7 +106,7 @@ class CircularDhtNode(Node):
         """
         port = int(nodeId)
 
-        logMsg = " F:"+ str(self.portNo) + "T:" + str(nodeId) + " " + msg
+        logMsg = " T:" + str(nodeId) + " " + msg
         
         if port != self.LOG_SERVER_PORT:
             if not self.send(msg, port):
