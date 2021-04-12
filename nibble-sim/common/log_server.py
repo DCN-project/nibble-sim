@@ -12,10 +12,10 @@ class LogServer(Node):
         logging.basicConfig(level=logging.INFO)
         self.setupNode(self.LOG_SERVER_PORT)
 
-    def startNewNetwork(self, nodeID):
+    def startNewNetwork(self, nodePortNo):
         pass
 
-    def joinNetwork(self, nodeID, portNo):
+    def joinNetwork(self, existingPortNo, nodePortNo):
         pass
 
     def sendMsg(self):

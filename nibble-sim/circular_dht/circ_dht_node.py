@@ -27,39 +27,43 @@ class CircularDhtNode(Node):
         """
         return hashlib.sha1(key.encode())
 
-    def startNewNetwork(self, nodeID, portNo):
+    def startNewNetwork(self, nodePortNo):
         """
-            Start a new P2P network with user defined nodeID and listens to portNo.
+            Start a new P2P network with user defined node and listens to nodePortNo.
 
             Parameters
             ----------
-            nodeID : str
-            portNo : int
+            nodePortNo : int
         """
-        self.nodeID = str(nodeID)
-        self.setupNode(portNo)
+        self.setupNode(nodePortNo)
 
         # intimate the log server on the addition of node
-        self.sendMsg("New network started by node: "+ self.nodeID + ". Listening on port: " + str(portNo), self.LOG_SERVER_PORT)
+        self.sendMsg("New network started by a node listening on port: " + str(nodePortNo), self.LOG_SERVER_PORT)
         logging.info("New network started.")
 
-    def joinNetwork(self, nodeID, portNo):
+    def joinNetwork(self, existingPortNo, nodePortNo):
         """
             Join an existing P2P network through a node on the network.
-            The way nodeID and portNo are obtained are upto the user and/or P2P protocol.
 
             Parameters
             ----------
-            nodeID : str
-                Identifier of the node in the P2P network through which new node wishes to join.
-            portNo : int 
-                Port number on which the existing node is listening.
+            existingPortNo : int
+                Port number on which the existing node is listening
+            nodePortNo : int 
+                Port number on which the node is listening
         """
-        self.nodeID = str(nodeID)
-        self.setupNode(portNo)
+        self.setupNode(nodePortNo)
+
+        # send <JOIN-NETWORK>
+        rpc = "J:" + str(self.portNo)
+        if self.sendMsg(rpc, existingPortNo):
+            logging.info("Sent <JOIN-NETWORK> to existing port: " + str(existingPortNo) + ". Waiting for reply.")
+        else:
+            logging.error("Could not send join network request to port: " + str(existingPortNo) + ". Shutting down node...")
+            self.close()
 
         # intimate the log server on the addition of node
-        self.sendMsg("New network started by node: "+ self.nodeID + ". Listening on port: " + str(portNo), self.LOG_SERVER_PORT)
+        self.sendMsg("Node added. Listening on port: " + str(nodePortNo) , self.LOG_SERVER_PORT)
 
         pass
 
@@ -69,22 +73,30 @@ class CircularDhtNode(Node):
 
             Parameters
             ----------
-            msg : str
-            nodeID : str
-        """
-        # TODO: Convert nodeID into port number
-        port = nodeId
+            msg : str/int
+            nodeId : str (port number of receiver as a string or int)
 
-        # TODO: replace self.portNo with self.nodeID
-        to_send_msg = " F:" + str(self.portNo) + "T:" + str(nodeId) +"M:" + msg
+            Returns
+            -------
+            success : boolean
+                True if message was successfully sent; else False
+        """
+        port = int(nodeId)
+
+        logMsg = " T:" + str(nodeId) + " " + msg
         
         if port != self.LOG_SERVER_PORT:
-            if not self.send(to_send_msg, port):
-                logging.warning("Could not send message to port: " + str(port))
-                to_send_msg = to_send_msg + " | FAILED"     # modify the message and send it to log server
+            if not self.send(msg, port):
+                logging.warning("Could not send message to port: " + str(nodeId))
+                logMsg = logMsg + " | FAILED"     # modify the message and send it to log server
+                if not self.send(logMsg, self.LOG_SERVER_PORT):
+                    logging.warning("Could not send message to log server.")
+                return False
 
-        if not self.send(to_send_msg, self.LOG_SERVER_PORT):
+        if not self.send(logMsg, self.LOG_SERVER_PORT):
             logging.warning("Could not send message to log server.")
+
+        return True
         
     def processRqst(self, msg):
         logging.info(msg)
@@ -96,17 +108,16 @@ class CircularDhtNode(Node):
         print('\nDo you want to start a new network[N] or join an existing one [E]?')
         user_choice = input('Your choice [N|E]: ')
         if user_choice == 'N':
-            nodeId = input("Enter the node identifier of your choice: ")
             port = input("Enter the port on which the node listens: ")
             try:
-                self.startNewNetwork(nodeId, int(port))
+                self.startNewNetwork(int(port))
             except ValueError:  # if the port number by user is not a valid integer
                 print("Invalid port number. Shutting down node...")
         elif user_choice == 'E':
-            nodeId = input("Enter the node identifier of an existing node: ")
-            port = input("Enter the port on which the existing node listens: ")
+            existingPort = input("Enter the port on which the existing node listens: ")
+            newPort = input("Enter the port on which the node listens: ")
             try:
-                self.joinNetwork(nodeId, int(port))
+                self.joinNetwork(int(existingPort), int(newPort))
             except ValueError:  # if the port number by user is not a valid integer
                 print("Invalid port number. Shutting down node...")
         else:
