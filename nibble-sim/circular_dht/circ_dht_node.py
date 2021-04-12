@@ -73,6 +73,23 @@ class CircularDhtNode(Node):
 
         pass
 
+    def close(self):
+        """
+            Send US, UP to node's predecessor and succesor and then closes the node.
+        """
+        if (self.neighbors[0] != self.portNo) and (self.neighbors[1] != self.portNo):
+            # send US to predecessor
+            rpc = "US:" + str(self.portNo) + ":" + str(self.neighbors[1])
+            if not self.sendMsg(rpc, self.neighbors[0]):
+                logging.error("Could not send US to predecessor! Anyways leaving the network.")
+
+            # send UP to successor
+            rpc = "UP:" + str(self.portNo) + ":" + str(self.neighbors[0])
+            if not self.sendMsg(rpc, self.neighbors[1]):
+                logging.error("Could not send UP to successor! Anyways leaving the network.")
+
+        super().close()
+
     def sendMsg(self, msg, nodeId):
         """
             Sends message to a nodeID and to LogServer
@@ -231,15 +248,15 @@ class CircularDhtNode(Node):
         """
             The main function that enables the user interact with the node and hence then P2P network.
         """
-        print('\nDo you want to start a new network[N] or join an existing one [E]?')
-        user_choice = input('Your choice [N|E]: ')
-        if user_choice == 'N':
+        print('\nDo you want to start a new network[n] or join an existing one [e]?')
+        user_choice = input('Your choice [n|e]: ')
+        if user_choice == 'n':
             port = input("Enter the port on which the node listens: ")
             try:
                 self.startNewNetwork(int(port))
             except ValueError:  # if the port number by user is not a valid integer
                 print("Invalid port number. Shutting down node...")
-        elif user_choice == 'E':
+        elif user_choice == 'e':
             existingPort = input("Enter the port on which the existing node listens: ")
             newPort = input("Enter the port on which the node listens: ")
             try:

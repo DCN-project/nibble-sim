@@ -4,6 +4,7 @@ import sys
 import time
 import threading
 import logging
+import re
 from abc import ABC, abstractmethod
 
 """ 
@@ -105,8 +106,9 @@ class Node(ABC):
                 logging.error("[ERROR] accepting connections. Trying again...")
 
             except socket.error as msg:
-                logging.error("[ERROR] Cannot accept any connections: " + str(msg))
-                self.close()
+                if not bool(re.search(".WinError 10038.", str(msg))):
+                    logging.error("[ERROR] Cannot accept any connections: " + str(msg))
+                    self.close()
 
         self.sock[0].close()
         logging.debug("Socket closed")
