@@ -13,8 +13,11 @@ class CircularDhtNode(Node):
     def __init__(self):
         super().__init__()
         logging.basicConfig(level=logging.INFO)
-
-        self.neighbors = [None, None]     # list of size 2. 0 -> predecessor | 1 -> successor
+    
+    def setupNode(self, nodePortNo):
+        super().setupNode(nodePortNo)
+        self.myHash = self.generateHash(str(self.portNo)).hexdigest()
+        self.neighbors = [self.portNo, self.portNo]     # 0 -> predecessor | 1 -> successor
 
     def generateHash(self, key):
         """
@@ -28,7 +31,7 @@ class CircularDhtNode(Node):
             -------
             hash : str
         """
-        return hashlib.sha1(key.encode())
+        return hashlib.sha1(str(key).encode())
 
     def startNewNetwork(self, nodePortNo):
         """
@@ -39,7 +42,6 @@ class CircularDhtNode(Node):
             nodePortNo : int
         """
         self.setupNode(nodePortNo)
-        self.myHash = self.generateHash(str(self.portNo))
 
         # intimate the log server on the addition of node
         self.sendMsg("New network started by a node listening on port: " + str(nodePortNo), self.LOG_SERVER_PORT)
@@ -57,10 +59,9 @@ class CircularDhtNode(Node):
                 Port number on which the node is listening
         """
         self.setupNode(nodePortNo)
-        self.myHash = self.generateHash(str(self.portNo))
 
         # send <JOIN-NETWORK>
-        rpc = "J:" + str(self.portNo)
+        rpc = "J:" + str(self.portNo) + ":" + str(self.portNo)
         if self.sendMsg(rpc, existingPortNo):
             logging.info("Sent <JOIN-NETWORK> to existing port: " + str(existingPortNo) + ". Waiting for reply.")
         else:
@@ -88,7 +89,7 @@ class CircularDhtNode(Node):
         """
         port = int(nodeId)
 
-        logMsg = " T:" + str(nodeId) + " " + msg
+        logMsg = " F:"+ str(self.portNo) + "T:" + str(nodeId) + " " + msg
         
         if port != self.LOG_SERVER_PORT:
             if not self.send(msg, port):
@@ -107,85 +108,122 @@ class CircularDhtNode(Node):
         """
             Prints help
         """
-        print("****\n****")
+        print("********")
+        print("Press 'ENTER' after typing any of the following")
         print("s - send messages")
         print("a - learn about the node")
         print("h - show this menu")
         print("CTRL+C - shutdown node")
-        print("****\n****")
+        print("********")
 
     def __printAboutNode(self):
         """
             Prints information about the node.
         """
-        print("****\n****")
+        print("********")
         print("Listening port number: ", str(self.portNo))
         print("Predecessor listening port number: ", str(self.neighbors[0]))
         print("Successor listening port number: ", str(self.neighbors[1]))
         print("Data stored (TODO)...")
-        print("****\n****")
+        print("********")
 
     def processRqst(self, msg):
         data = re.split(":", msg)
 
         if data[0] == 'J':  # <JOIN-NETWORK>
-            if len(data) != 2:
+            if len(data) != 3:
                 self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
-                logging.warning("Received invalid RPC!")
+                logging.warning("Received invalid RPC! msg: " + msg)
                 return
-            newJoineeHash = self.generateHash(data[1]).hexdigest()
-            
-            if (newJoineeHash > self.myHash.hexdigest()):
-                if self.neighbors[1] is not None:
-                    if (newJoineeHash < self.generateHash(self.neighbors[1]).hexdigest()):
-                        rpc = "USP:" + str(self.portNo) + ":" + str(self.neighbors[1]) + ":" + str(self.portNo)
-                        if self.sendMsg(rpc, data[1]):
-                            rpc = "UP:" + str(self.portNo) + ":" + str(data[1])
-                            if self.sendMsg(rpc, self.neighbors[1]):
-                                self.neighbors[1] = int(data[1])
-                                logging.info("Updated successor!")
-                            else:
-                                logging.error("Could not send UP to successor! Old successor retained.")
+            newJoineeHash = self.generateHash(data[2]).hexdigest()
+
+            if (newJoineeHash > self.myHash):
+                successorHash = self.generateHash(self.neighbors[1]).hexdigest()
+                if (newJoineeHash < successorHash) or (self.myHash > successorHash):
+                    rpc = "USP:" + str(self.portNo) + ":" + str(self.neighbors[1]) + ":" + str(self.portNo)
+                    if self.sendMsg(rpc, data[2]):
+                        rpc = "UP:" + str(self.portNo) + ":" + str(data[2])
+                        if self.sendMsg(rpc, self.neighbors[1]):
+                            self.neighbors[1] = int(data[2])
+                            logging.info("Updated successor!")
                         else:
-                            logging.error("Could not send USP to new joinee!")
+                            logging.error("Could not send UP to successor! Old successor retained.")
                     else:
-                        if self.sendMsg(msg, self.neighbors[1]):
-                            logging.info("Forwarded J RPC to successor: " + str(self.neighbors[1]))
-                        else:
-                            logging.error("Could not send J RPC to successor!.")
-                else:
-                    rpc = "USP:" + str(self.portNo) + ":None:" + str(self.portNo)
-                    if self.sendMsg(rpc, data[1]):
-                        self.neighbors[1] = int(data[1])
+                        logging.error("Could not send USP to new joinee!")
+                elif self.neighbors[1] == self.portNo:
+                    rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.portNo)
+                    if self.sendMsg(rpc, data[2]):
+                        self.neighbors[1] = int(data[2])
                         logging.info("Updated successor!")
+                        if self.neighbors[0] == self.portNo:
+                            self.neighbors[0] = int(data[2])
+                            logging.info("Updated predecessor!")
                     else:
                         logging.error("Could not send USP to new joinee!")
-            else:
-                if self.neighbors[0] is not None:
-                    if (newJoineeHash > self.generateHash(self.neighbors[0])):
-                        rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.neighbors[0])
-                        if self.sendMsg(rpc, data[1]):
-                            rpc = "US:" + str(self.portNo) + ":" + str(data[1])
-                            if self.sendMsg(rpc, self.neighbors[0]):
-                                self.neighbors[0] = int(data[1])
-                                logging.info("Updated predecessor!")
-                            else:
-                                logging.error("Could not send US to predecessor! Old predecessor retained.")
-                        else:
-                            logging.error("Could not send USP to new joinee!")
-                    else:
-                        if self.sendMsg(msg, self.neighbors[0]):
-                            logging.info("Forwarded J RPC to predecessor: " + str(self.neighbors[0]))
-                        else:
-                            logging.error("Could not send J RPC to predecessor!.")
                 else:
-                    rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":None"
-                    if self.sendMsg(rpc, data[1]):
-                        self.neighbors[0] = int(data[1])
-                        logging.info("Updated predecessor!")
+                    rpc = data[0] + ":" + str(self.portNo) + ":" + data[2]
+                    if self.sendMsg(rpc, self.neighbors[1]):
+                        logging.info("Forwarded J RPC to successor: " + str(self.neighbors[1]))
+                    else:
+                        logging.error("Could not send J RPC to successor!.")
+            else:
+                predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
+                if (newJoineeHash > predecessorHash) or (predecessorHash > self.myHash):
+                    rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.neighbors[0])
+                    if self.sendMsg(rpc, data[2]):
+                        rpc = "US:" + str(self.portNo) + ":" + str(data[2])
+                        if self.sendMsg(rpc, self.neighbors[0]):
+                            self.neighbors[0] = int(data[2])
+                            logging.info("Updated predecessor!")
+                        else:
+                            logging.error("Could not send US to predecessor! Old predecessor retained.")
                     else:
                         logging.error("Could not send USP to new joinee!")
-            
+                elif self.neighbors[0] == self.portNo:
+                    rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.portNo)
+                    if self.sendMsg(rpc, data[2]):
+                        self.neighbors[0] = int(data[2])
+                        logging.info("Updated predecessor!")
+                        if self.neighbors[1] == self.portNo:
+                            self.neighbors[1] = int(data[2])
+                            logging.info("Updated successor!")
+                    else:
+                        logging.error("Could not send USP to new joinee!")
+                else:
+                    rpc = data[0] + ":" + str(self.portNo) + ":" + data[2]
+                    if self.sendMsg(rpc, self.neighbors[0]):
+                        logging.info("Forwarded J RPC to predecessor: " + str(self.neighbors[0]))
+                    else:
+                        logging.error("Could not send J RPC to predecessor!.")
+        
+        elif data[0] == 'USP': # <UPDATE-SUCCESSOR-PREDECESSOR>
+            if len(data) != 4:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            self.neighbors[0] = int(data[3])
+            self.neighbors[1] = int(data[2])
+            logging.info("Updated successor and predecessor!")
+        
+        elif data[0] == 'UP': # <UPDATE-PREDECESSOR>
+            if len(data) != 3:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            self.neighbors[0] = int(data[2])
+            logging.info("Updated predecessor!")
+
+        elif data[0] == 'US': # <UPDATE-SUCCESSOR>
+            if len(data) != 3:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            self.neighbors[1] = int(data[2])
+            logging.info("Updated successor!")
+        
+        else:
+            self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+            logging.warning("Received invalid RPC! msg: " + msg)
 
         logging.info(msg)
 
