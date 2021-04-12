@@ -4,6 +4,7 @@
 
 import logging
 import hashlib
+import re
 
 from common.node import Node
 
@@ -12,6 +13,8 @@ class CircularDhtNode(Node):
     def __init__(self):
         super().__init__()
         logging.basicConfig(level=logging.INFO)
+
+        self.neighbors = [None, None]     # list of size 2. 0 -> predecessor | 1 -> successor
 
     def generateHash(self, key):
         """
@@ -36,6 +39,7 @@ class CircularDhtNode(Node):
             nodePortNo : int
         """
         self.setupNode(nodePortNo)
+        self.myHash = self.generateHash(str(self.portNo))
 
         # intimate the log server on the addition of node
         self.sendMsg("New network started by a node listening on port: " + str(nodePortNo), self.LOG_SERVER_PORT)
@@ -53,6 +57,7 @@ class CircularDhtNode(Node):
                 Port number on which the node is listening
         """
         self.setupNode(nodePortNo)
+        self.myHash = self.generateHash(str(self.portNo))
 
         # send <JOIN-NETWORK>
         rpc = "J:" + str(self.portNo)
@@ -97,8 +102,91 @@ class CircularDhtNode(Node):
             logging.warning("Could not send message to log server.")
 
         return True
-        
+
+    def __printHelp(self):
+        """
+            Prints help
+        """
+        print("****\n****")
+        print("s - send messages")
+        print("a - learn about the node")
+        print("h - show this menu")
+        print("CTRL+C - shutdown node")
+        print("****\n****")
+
+    def __printAboutNode(self):
+        """
+            Prints information about the node.
+        """
+        print("****\n****")
+        print("Listening port number: ", str(self.portNo))
+        print("Predecessor listening port number: ", str(self.neighbors[0]))
+        print("Successor listening port number: ", str(self.neighbors[1]))
+        print("Data stored (TODO)...")
+        print("****\n****")
+
     def processRqst(self, msg):
+        data = re.split(":", msg)
+
+        if data[0] == 'J':  # <JOIN-NETWORK>
+            if len(data) != 2:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC!")
+                return
+            newJoineeHash = self.generateHash(data[1]).hexdigest()
+            
+            if (newJoineeHash > self.myHash.hexdigest()):
+                if self.neighbors[1] is not None:
+                    if (newJoineeHash < self.generateHash(self.neighbors[1]).hexdigest()):
+                        rpc = "USP:" + str(self.portNo) + ":" + str(self.neighbors[1]) + ":" + str(self.portNo)
+                        if self.sendMsg(rpc, data[1]):
+                            rpc = "UP:" + str(self.portNo) + ":" + str(data[1])
+                            if self.sendMsg(rpc, self.neighbors[1]):
+                                self.neighbors[1] = int(data[1])
+                                logging.info("Updated successor!")
+                            else:
+                                logging.error("Could not send UP to successor! Old successor retained.")
+                        else:
+                            logging.error("Could not send USP to new joinee!")
+                    else:
+                        if self.sendMsg(msg, self.neighbors[1]):
+                            logging.info("Forwarded J RPC to successor: " + str(self.neighbors[1]))
+                        else:
+                            logging.error("Could not send J RPC to successor!.")
+                else:
+                    rpc = "USP:" + str(self.portNo) + ":None:" + str(self.portNo)
+                    if self.sendMsg(rpc, data[1]):
+                        self.neighbors[1] = int(data[1])
+                        logging.info("Updated successor!")
+                    else:
+                        logging.error("Could not send USP to new joinee!")
+            else:
+                if self.neighbors[0] is not None:
+                    if (newJoineeHash > self.generateHash(self.neighbors[0])):
+                        rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.neighbors[0])
+                        if self.sendMsg(rpc, data[1]):
+                            rpc = "US:" + str(self.portNo) + ":" + str(data[1])
+                            if self.sendMsg(rpc, self.neighbors[0]):
+                                self.neighbors[0] = int(data[1])
+                                logging.info("Updated predecessor!")
+                            else:
+                                logging.error("Could not send US to predecessor! Old predecessor retained.")
+                        else:
+                            logging.error("Could not send USP to new joinee!")
+                    else:
+                        if self.sendMsg(msg, self.neighbors[0]):
+                            logging.info("Forwarded J RPC to predecessor: " + str(self.neighbors[0]))
+                        else:
+                            logging.error("Could not send J RPC to predecessor!.")
+                else:
+                    rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":None"
+                    if self.sendMsg(rpc, data[1]):
+                        self.neighbors[0] = int(data[1])
+                        logging.info("Updated predecessor!")
+                    else:
+                        logging.error("Could not send USP to new joinee!")
+            
+
         logging.info(msg)
 
     def run(self):
@@ -124,14 +212,18 @@ class CircularDhtNode(Node):
             print('Invalid choice. Shutting down node...')
 
         print("Instantiated node. Listening on port number: ", self.portNo)
-        print("*** Type 'S' to send messages *** ")
+        print("*** Type 'h' for help *** ")
         while not self.shutdown:
             try:
-                cmd = input('Your choice [S]: ')
-                if cmd == 'S':
+                cmd = input()
+                if cmd == 's':
                     msg = input("Enter the message: ")
                     portNo = input("Enter the target port number: ")
                     self.sendMsg(msg, int(portNo))
+                elif cmd == 'a':
+                    self.__printAboutNode()
+                elif cmd == 'h':
+                    self.__printHelp()
                 else:
                     print("Invalid choice!")
 
