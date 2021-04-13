@@ -30,35 +30,52 @@
 - The above information is stored in the routing table of the node.
 
 ### Node joining the network
-- For a node to join the network, it sends a *join* request (<JOIN-NETWORK\>) to any existing node's IP address&|/port number. It is assumed that there exists an external mechanism through which the IP address&|/port number of a node (n') in the network is known to a new joinee, *n*. The following details are sent in the <JOIN-NETWORK\>:
-    1. Port number on which *n* listens
+> **Notation** <br>
+n+ : successor of node n <br>
+n- : predecessor of node n <br>
+n : node to which join request is sent <br>
+n* : node sending the join request to node n
+- For a node to join the network, it sends a *join* request (<JOIN-NETWORK\>) to any existing node's IP address&|/port number. It is assumed that there exists an external mechanism through which the IP address&|/port number of a node (n) in the network is known to a new joinee, *n\**. The following details are sent in the <JOIN-NETWORK\>:
+    1. Port number on which n* listens
 
 #### After receiving <JOIN-NETWORK\>
-After (n') receives the *join* request, the following steps are executed:
-1. (n') calculates the hash of the IP address&|/port number of *n*.
-2. Compares the hash(n) with the hash of it's own IP address&|/port number:
-- if (hash(n) > hash(n')):
-    - if (hash(n) < hash(successor(n'))):
-        - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
-            - IP address&|/port number of (n') as (n)'s predecessor
-            - IP address&|/port number of (n')'s successor ( - n'') as (n)'s successor
-        - (n') sends <UPDATE-PREDECESSOR\> to (n'') with IP address&|/port number of (n) as (n'')'s predecessor 
-        - (n') updates it's routing table with (n) as it's successor
+After (n) receives the *join* request, the following steps are executed:
+1. (n) calculates the hash of the IP address&|/port number of n*.
+2. Compares the hash(n*) and hash(n):
+- if (hash(n*) > hash(n)):
+    - if (hash(n*) < hash(n+)) or (hash(n) > hash(n+)):
+        - (n) replies to (n*) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
+            - IP address&|/port number of (n) as (n*)'s predecessor
+            - IP address&|/port number of (n+) as (n*)'s successor
+        - (n) sends <UPDATE-PREDECESSOR\> to (n+) with IP address&|/port number of (n*) as (n+)'s predecessor 
+        - (n) updates it's routing table with (n*) as it's successor
+    - elif (n+) == (n):
+        - (n) replies to (n*) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
+            - IP address&|/port number of (n) as (n*)'s predecessor
+            - IP address&|/port number of (n) as (n*)'s successor
+        - (n) updates it's routing table with (n*) as it's successor
+        - if (n-) == (n):
+            - (n) updates it's routing table with (n*) as it's predecessor
     - else:
-        - (n') sends (n'') <JOIN-NETWORK\>:
-            - The above function repeats itself with n' changed to n''
-- else (hash(n) < hash(n')):
-    - if (hash(n) > hash(predecessor(n'))):
-        - (n') replies to (n) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
-            - IP address&|/port number of (n') as (n)'s successor
-            - IP address&|/port number of (n')'s predecessor ( - 'n) as (n)'s predecessor
-        - (n') sends a message to ('n) with IP address&|/port number of (n) as ('n)'s successor <UPDATE-SUCCESSOR\>
+        - (n) sends (n+) <JOIN-NETWORK\> from (n*)
+- else (hash(n*) < hash(n)):
+    - if (hash(n*) > hash(n-)) or (hash(n-) > hash(n)):
+        - (n) replies to (n*) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
+            - IP address&|/port number of (n) as (n*)'s successor
+            - IP address&|/port number of (n-) as (n*)'s predecessor
+        - (n) sends a message to (n-) with IP address&|/port number of (n*) as (n-)'s successor <UPDATE-SUCCESSOR\>
+    - elif (n-) == (n):
+        - (n) replies to (n*) with <UPDATE-SUCCESSOR-PREDECESSOR\>:
+            - IP address&|/port number of (n) as (n*)'s predecessor
+            - IP address&|/port number of (n) as (n*)'s successor
+        - (n) updates it's routing table with (n*) as it's predecessor
+        - if (n+) == (n):
+            - (n) updates it's routing table with (n*) as it's successor
     - else:
-        - (n') sends ('n) <JOIN-NETWORK\>:
-            - The above function repeats itself with n' changed to 'n
+        - (n) sends (n-) <JOIN-NETWORK\> from (n*)
 3. Transferring of keys
-    - (n) can become the successor only for keys that were previously the responsibility of the node immediately following (n). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys.
-    - Hence, only after receiving <UPDATE-SUCCESSOR-PREDECESSOR\>, (n) sends <TRANSFER-KEYS\> to it's successor.
+    - (n*) can become the successor only for keys that were previously the responsibility of the node immediately following (n*). So, (n) only needs to contact that one node to transfer responsibility for all relevant keys.
+    - Hence, only after receiving <UPDATE-SUCCESSOR-PREDECESSOR\>, (n*) sends <TRANSFER-KEYS\> to it's successor.
 
 #### After receiving <TRANSFER-KEYS\>
 - Node compares the hash of the keys it has with the hash of the lportNo it receives with the RPC.

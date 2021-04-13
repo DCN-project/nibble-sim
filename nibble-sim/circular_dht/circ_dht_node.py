@@ -35,6 +35,7 @@ class CircularDhtNode(Node):
     def startNewNetwork(self, nodePortNo):
         """
             Start a new P2P network with user defined node and listens to nodePortNo.
+            
             Parameters
             ----------
             nodePortNo : int
@@ -48,6 +49,7 @@ class CircularDhtNode(Node):
     def joinNetwork(self, existingPortNo, nodePortNo):
         """
             Join an existing P2P network through a node on the network.
+            
             Parameters
             ----------
             existingPortNo : int
@@ -94,6 +96,7 @@ class CircularDhtNode(Node):
             ----------
             msg : str/int
             nodeId : str (port number of receiver as a string or int)
+            
             Returns
             -------
             success : boolean
