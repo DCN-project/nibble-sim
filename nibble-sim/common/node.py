@@ -88,6 +88,8 @@ class Node(ABC):
 
         while not self.shutdown:
             try:
+                del allConn[:]
+                del allAddr[:]
                 conn, address = self.sock[0].accept()
                 self.sock[0].setblocking(1)  # prevents timeout
 
@@ -133,13 +135,14 @@ class Node(ABC):
         try:    
             if not self.clientFlag:
                 self.sock[1] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.clientFlag = True
 
             self.sock[1].connect((self.HOST, port))
             self.sock[1].send(msg.encode(self.MSG_FORMAT))
 
             if waitReply:
                 print(self.sock[1].recv(1024).decode(self.MSG_FORMAT))
-            
+
             return True
 
         except KeyboardInterrupt:
@@ -147,15 +150,17 @@ class Node(ABC):
             return False
         
         except socket.error as msg:
-            logging.error("[ERROR] Cannot send message to the target node: " + str(port))
+            logging.error("[ERROR] Cannot send message to the target node: " + str(port) + str(msg))
             if (port == self.LOG_SERVER_PORT):
                 logging.fatal("Log server has not been instantiated. Exiting node ...")
                 self.close()
             return False
         
         finally:
+            print("Closing the connection")
             self.sock[1].close()
             self.clientFlag = False
+    
 
     def close(self):
         '''
@@ -165,6 +170,7 @@ class Node(ABC):
         self.sock[0].close()
         if self.clientFlag:
             self.sock[1].close()
+            self.clientFlag = False
 
     @abstractmethod
     def processRqst(self, msg):
