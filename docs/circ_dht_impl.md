@@ -78,9 +78,14 @@ After (n) receives the *join* request, the following steps are executed:
     - Hence, only after receiving <UPDATE-SUCCESSOR-PREDECESSOR\>, (n*) sends <TRANSFER-KEYS\> to it's successor.
 
 #### After receiving <TRANSFER-KEYS\>
-- Node compares the hash of the keys it has with the hash of the lportNo it receives with the RPC.
-    - If the hash of the key is more than or equal to the hash of the lportNo, the key and it's value are sent along with <STORE-KEY\> RPC.
-    - Else, nothing is done.
+> n : node receiving the request <br>
+n* : node sending the request
+- if predecessor(n) == (n*):
+    - for key in hashTable:
+        - if hash(key) >= hash(n*):
+            - Send key and it's value are sent along with <STORE-KEY-VALUE\> RPC to n*
+            - Delete the key-value pair from (n)'s hashTable
+- else: nothing is done.
 
 #### After receiving <STORE-KEY\>
 - Node compares the hash of the key with it's predecessor:
@@ -111,8 +116,12 @@ After (n) receives the *join* request, the following steps are executed:
 - If a node receives an invalid RPC, then the node sends <INVALID-RPC\> with all the information it receives (may be corrupted) to LogServer. 
 
 ### Node leaving the network
-- Whenever a node (n) leaves the network, keys assigned to (n) will be reassigned to it's successor.
-- The routing table of it's predecessor is also updated.
+> n : node leaving the network
+- if hash(n+) < hash(n): # indicating circular overflow
+    - send all key-value pairs from hashTable of (n) to (n-)
+- else:
+    - send all key-value pairs from hashTable of (n) to (n+)
+- shutdown(n)
 
 ### Resolving query
 ![query_resolve](./images/query_resolve.jpg)

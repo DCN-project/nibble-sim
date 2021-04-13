@@ -18,6 +18,8 @@ class CircularDhtNode(Node):
         super().setupNode(nodePortNo)
         self.myHash = self.generateHash(str(self.portNo)).hexdigest()
         self.neighbors = [self.portNo, self.portNo]     # 0 -> predecessor | 1 -> successor
+        self.successorHash = self.myHash
+        self.predecessorHash = self.myHash
         self.hashTable = {} 
 
     def generateHash(self, key):
@@ -76,6 +78,25 @@ class CircularDhtNode(Node):
         """
             Send US, UP to node's predecessor and succesor and then closes the node.
         """
+        # transfer the keys
+        keyRxPortNo = None
+        if self.successorHash < self.myHash: # indicating circular overflow
+            keyRxPortNo = self.neighbors[0]
+        else:
+            keyRxPortNo = self.neighbors[1]
+
+        if keyRxPortNo != self.portNo:
+            keysToSend = []
+            for key in self.hashTable:
+                keysToSend.append(key)
+            for key in keysToSend:
+                if self.sendMsg("SV:" + str(self.portNo) + ":" + key + ":" + str(self.__getValue(key, True)), keyRxPortNo):
+                    logging.info("Transferred key: " + key + " to : " + str(keyRxPortNo))
+                else:
+                    logging.warning("Could not send <STORE-KEY-VALUE>. Anyways, node is closing.")
+        else:
+            logging.info("Not transferring keys because I am the single node in the network.")
+
         if (self.neighbors[0] != self.portNo) and (self.neighbors[1] != self.portNo):
             # send US to predecessor
             rpc = "US:" + str(self.portNo) + ":" + str(self.neighbors[1])
@@ -119,35 +140,6 @@ class CircularDhtNode(Node):
 
         return True
 
-    def __printHelp(self):
-        """
-            Prints help
-        """
-        print("********")
-        print("Press 'ENTER' after typing any of the following")
-        print("send - send messages")
-        print("store - store new file/data")
-        print("a - learn about the node")
-        print("h - show this menu")
-        print("CTRL+C - shutdown node")
-        print("********")
-
-    def __printAboutNode(self):
-        """
-            Prints information about the node.
-        """
-        print("********")
-        print("Listening port number: ", str(self.portNo))
-        print("Predecessor listening port number: ", str(self.neighbors[0]))
-        print("Successor listening port number: ", str(self.neighbors[1]))
-        if not self.hashTable:
-            print("No data stored as of now")
-        else:
-            print("Data stored: ", self.hashTable)
-        print("********")
-        
-
-
     def processRqst(self, msg):
         data = re.split(":", msg)
         
@@ -159,13 +151,13 @@ class CircularDhtNode(Node):
             newJoineeHash = self.generateHash(data[2]).hexdigest()
 
             if (newJoineeHash > self.myHash):
-                successorHash = self.generateHash(self.neighbors[1]).hexdigest()
-                if (newJoineeHash < successorHash) or (self.myHash > successorHash):
+                if (newJoineeHash < self.successorHash) or (self.myHash > self.successorHash):
                     rpc = "USP:" + str(self.portNo) + ":" + str(self.neighbors[1]) + ":" + str(self.portNo)
                     if self.sendMsg(rpc, data[2]):
                         rpc = "UP:" + str(self.portNo) + ":" + str(data[2])
                         if self.sendMsg(rpc, self.neighbors[1]):
                             self.neighbors[1] = int(data[2])
+                            self.successorHash = self.generateHash(self.neighbors[1]).hexdigest()
                             logging.info("Updated successor!")
                         else:
                             logging.error("Could not send UP to successor! Old successor retained.")
@@ -175,9 +167,11 @@ class CircularDhtNode(Node):
                     rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.portNo)
                     if self.sendMsg(rpc, data[2]):
                         self.neighbors[1] = int(data[2])
+                        self.successorHash = self.generateHash(self.neighbors[1]).hexdigest()
                         logging.info("Updated successor!")
                         if self.neighbors[0] == self.portNo:
                             self.neighbors[0] = int(data[2])
+                            self.predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
                             logging.info("Updated predecessor!")
                     else:
                         logging.error("Could not send USP to new joinee!")
@@ -188,13 +182,13 @@ class CircularDhtNode(Node):
                     else:
                         logging.error("Could not send J RPC to successor!.")
             else:
-                predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
-                if (newJoineeHash > predecessorHash) or (predecessorHash > self.myHash):
+                if (newJoineeHash > self.predecessorHash) or (self.predecessorHash > self.myHash):
                     rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.neighbors[0])
                     if self.sendMsg(rpc, data[2]):
                         rpc = "US:" + str(self.portNo) + ":" + str(data[2])
                         if self.sendMsg(rpc, self.neighbors[0]):
                             self.neighbors[0] = int(data[2])
+                            self.predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
                             logging.info("Updated predecessor!")
                         else:
                             logging.error("Could not send US to predecessor! Old predecessor retained.")
@@ -204,9 +198,11 @@ class CircularDhtNode(Node):
                     rpc = "USP:" + str(self.portNo) + ":" + str(self.portNo) + ":" + str(self.portNo)
                     if self.sendMsg(rpc, data[2]):
                         self.neighbors[0] = int(data[2])
+                        self.predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
                         logging.info("Updated predecessor!")
                         if self.neighbors[1] == self.portNo:
                             self.neighbors[1] = int(data[2])
+                            self.successorHash = self.generateHash(self.neighbors[1]).hexdigest()
                             logging.info("Updated successor!")
                     else:
                         logging.error("Could not send USP to new joinee!")
@@ -224,7 +220,15 @@ class CircularDhtNode(Node):
                 return
             self.neighbors[0] = int(data[3])
             self.neighbors[1] = int(data[2])
+            self.successorHash = self.generateHash(self.neighbors[1]).hexdigest()
+            self.predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
             logging.info("Updated successor and predecessor!")
+
+            # sending <TRANSFER-KEYS> to successor
+            if self.sendMsg("T:"+str(self.portNo), self.neighbors[1]):
+                logging.info("Sent <TRANSFER-KEYS> request to successor")
+            else:
+                logging.warning("Some problem in sending <TRANSFER-KEYS>")
         
         elif data[0] == 'UP': # <UPDATE-PREDECESSOR>
             if len(data) != 3:
@@ -232,6 +236,7 @@ class CircularDhtNode(Node):
                 logging.warning("Received invalid RPC! msg: " + msg)
                 return
             self.neighbors[0] = int(data[2])
+            self.predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
             logging.info("Updated predecessor!")
 
         elif data[0] == 'US': # <UPDATE-SUCCESSOR>
@@ -240,6 +245,7 @@ class CircularDhtNode(Node):
                 logging.warning("Received invalid RPC! msg: " + msg)
                 return
             self.neighbors[1] = int(data[2])
+            self.successorHash = self.generateHash(self.neighbors[1]).hexdigest()
             logging.info("Updated successor!")
         
         elif data[0] == 'SK': # <STORE-KEY>
@@ -248,7 +254,7 @@ class CircularDhtNode(Node):
                 logging.warning("Received invalid RPC! msg: " + msg)
                 return
             print(data)
-            self.__checkHash(data[2], data[3])
+            self.__storeKey(data[2], data[3])
         
         elif data[0] == 'G': # <GET-VALUE>
             if len(data) != 3:
@@ -256,7 +262,7 @@ class CircularDhtNode(Node):
                 logging.warning("Received invalid RPC! msg: " + msg)
                 return
             
-            self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findKey(data[2], True)), int(data[1])) 
+            self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__getValue(data[2], True)), int(data[1])) 
         
         elif data[0] == 'SV': # <STORE-KEY-VALUE>
             if len(data) != 4:
@@ -267,6 +273,22 @@ class CircularDhtNode(Node):
             self.hashTable.update({data[2]: data[3]})
             logging.info("Data stored in node: "+ str(self.portNo))
         
+        elif data[0] == 'T': # <TRANSFER-KEYS>
+            if len(data) != 2:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            rqsterHash = self.generateHash(data[1]).hexdigest()
+            keysToSend = []
+            for key in self.hashTable:
+                if (self.generateHash(key).hexdigest() >= rqsterHash):
+                    keysToSend.append(key)
+            for key in keysToSend:
+                if self.sendMsg("SV:" + str(self.portNo) + ":" + str(key) + ":" + str(self.__getValue(key, True)), int(data[1])):
+                    logging.info("Transferred key: " + key + " to: " + str(data[1]))
+                else:
+                    logging.warning("Could not send <STORE-KEY-VALUE> to the requester")
+
         else:
             print("I AM HERE!!!!! ", msg)
             self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
@@ -309,12 +331,14 @@ class CircularDhtNode(Node):
                     key = input("Enter the key: ")
                     listLen = input("Enter the length of the value list: ")
                     value = []
-                    
-                    for i in range(int(listLen)):
-                        print("Enter element-", i,": ")
-                        value.append(input())
-                    self.hashTable.update({key: value})
-                    self.__checkHash(self.portNo, key)
+                    try:
+                        for i in range(int(listLen)):
+                            print("Enter element-", i,": ")
+                            value.append(input())
+                        self.hashTable.update({key: value})
+                        self.__storeKey(self.portNo, key)
+                    except ValueError: # if the entry by the user is not a valid number
+                        print("Invalid length of list. Storing terminated")
                 elif cmd == 'a':
                     self.__printAboutNode()
                 elif cmd == 'h':
@@ -326,25 +350,49 @@ class CircularDhtNode(Node):
                 print("[KEYBOARD INTERRUPT]")
                 break
 
-    
-    def __checkHash(self, iportNo, key):
+    def __printHelp(self):
+        """
+            Prints help
+        """
+        print("********")
+        print("Press 'ENTER' after typing any of the following")
+        print("send - send messages")
+        print("store - store new file/data")
+        print("a - learn about the node")
+        print("h - show this menu")
+        print("CTRL+C - shutdown node")
+        print("********")
+
+    def __printAboutNode(self):
+        """
+            Prints information about the node.
+        """
+        print("********")
+        print("Listening port number: ", str(self.portNo))
+        print("Predecessor listening port number: ", str(self.neighbors[0]))
+        print("Successor listening port number: ", str(self.neighbors[1]))
+        if not self.hashTable:
+            print("No data stored as of now")
+        else:
+            print("Data stored: ", self.hashTable)
+        print("********")
+
+    def __storeKey(self, iportNo, key):
         """
         Implements the STORE-KEY Function
             - iportNo: lportNo-node-wanting-to-store
             - key: key to be stored
         """
-        predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
-        successorHash = self.generateHash(self.neighbors[1]).hexdigest()
         keyHash = self.generateHash(key).hexdigest()
         rpc = "SK:" + str(self.portNo) + ":" + str(iportNo) + ":" + str(key)
             
-        if (keyHash <= predecessorHash) and (self.myHash > predecessorHash):
+        if (keyHash <= self.predecessorHash) and (self.myHash > self.predecessorHash):
             self.sendMsg(rpc, self.neighbors[0])
-            logging.info("Finding node for the key at successor node: " + str(self.neighbors[1]) + " " + rpc)
+            logging.info("Finding node for the key at predecessor node: " + str(self.neighbors[0]))
 
-        elif (keyHash > self.myHash) and (successorHash > self.myHash):
+        elif (keyHash > self.myHash) and (self.successorHash > self.myHash):
             self.sendMsg(rpc, self.neighbors[1])
-            logging.info("Finding node for the key at predecessor node: " + str(self.neighbors[0]) + rpc)
+            logging.info("Finding node for the key at successor node: " + str(self.neighbors[1]))
 
         else:
             if int(iportNo) != self.portNo:
@@ -352,8 +400,7 @@ class CircularDhtNode(Node):
                 return
             logging.info("Data stored in node: " + str(self.portNo))
 
-
-    def __findKey(self, keyFind, delPair=False):
+    def __getValue(self, keyFind, delPair=False):
         """
         Used to find values of a key in node's hashtable
             - keyFind: Key whose values are to be sent and deleted
