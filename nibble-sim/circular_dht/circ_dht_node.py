@@ -311,7 +311,6 @@ class CircularDhtNode(Node):
                         print("Enter element-", i,": ")
                         value.append(input())
                     self.hashTable.update({key: value})
-                    print(self.portNo)
                     self.__checkHash(self.portNo, key)
                 elif cmd == 'a':
                     self.__printAboutNode()
@@ -340,7 +339,6 @@ class CircularDhtNode(Node):
             logging.info("Finding node for the key at predecessor node: " + str(self.neighbors[0]) + rpc)
 
         else:
-            print("cmp datas: ", iportNo, self.portNo, key)
             if int(iportNo) != self.portNo:
                 self.sendMsg("G:" + str(self.portNo) + ":" + str(key), int(iportNo))
                 return

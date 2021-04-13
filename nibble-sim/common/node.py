@@ -157,7 +157,6 @@ class Node(ABC):
             return False
         
         finally:
-            print("Closing the connection")
             self.sock[1].close()
             self.clientFlag = False
     
