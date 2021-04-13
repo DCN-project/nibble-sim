@@ -27,3 +27,6 @@ The meaning of `<data-1>, <data-2>, ..., <data-n>` is dependent on the RPC.
 | **<STORE-KEY\>** | SK:<sender-lportNo\>:<lportNo-node-wanting-to-store\>:<key\>|
 | **<GET-VALUE\>** | G:<sender-lportNo\>:<key-whose-value-is-needed\>|
 | **<STORE-KEY-VALUE\>** | SV:<sender-lportNo\>:<key\>:<value\>|
+|**<SHOW-KEYS\>** | SHW:<sender-IportNo\>|
+|**<SEND-KEYS\>** | SEN:<sender-IportNo\>:<list-of-all-its-keys\>|
+| **<RETRIEVE-VALUE\>** | R:<sender-IportNo\>:<key\>|

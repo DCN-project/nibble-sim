@@ -84,6 +84,12 @@ After (n') receives the *join* request, the following steps are executed:
 #### After receiving <STORE-KEY-VALUE\>
 - Store the (key, value) pair in the node's hashtable.
 
+### After receiving <SHOW-KEYS\>
+- Send all the keys to the sender IportNo
+
+### After receiving <RETRIEVE-VALUE\>
+- Send the (key, value) of the requested key to the sender IportNo
+
 #### Use of <INVALID-RPC\>
 - If a node receives an invalid RPC, then the node sends <INVALID-RPC\> with all the information it receives (may be corrupted) to LogServer. 
 

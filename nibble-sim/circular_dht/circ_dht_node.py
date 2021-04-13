@@ -253,7 +253,7 @@ class CircularDhtNode(Node):
                 logging.warning("Received invalid RPC! msg: " + msg)
                 return
             
-            self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findKey(data[2])), int(data[1])) 
+            self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findKey(data[2], True)), int(data[1])) 
         
         elif data[0] == 'SV': # <STORE-KEY-VALUE>
             if len(data) != 4:
@@ -325,6 +325,11 @@ class CircularDhtNode(Node):
 
     
     def __checkHash(self, iportNo, key):
+        """
+        Implements the STORE-KEY Function
+            - iportNo: lportNo-node-wanting-to-store
+            - key: key to be stored
+        """
         predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
         successorHash = self.generateHash(self.neighbors[1]).hexdigest()
         keyHash = self.generateHash(key).hexdigest()
@@ -344,9 +349,17 @@ class CircularDhtNode(Node):
                 return
             logging.info("Data stored in node: " + str(self.portNo))
 
-    def __findKey(self, keyFind):
+
+    def __findKey(self, keyFind, delPair=False):
+        """
+        Used to find values of a key in node's hashtable
+            - keyFind: Key whose values are to be sent and deleted
+            - delPair: When True, deletes the (key, value) pair from node's
+                       hash-table
+        """
         for key, value in self.hashTable.items():
             if key == keyFind:
                 val = value
-                self.hashTable.pop(key)
+                if delPair:
+                    self.hashTable.pop(key)
                 return val
