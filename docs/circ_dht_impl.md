@@ -79,16 +79,21 @@ After (n') receives the *join* request, the following steps are executed:
 
 #### After receiving <GET-VALUE\>
 - Send (key, value) of the key to the lportNo from <GET-VALUE\> RPC as a part of <STORE-KEY-VALUE\>.
-- Delete the (key,value) pair in the node's own hashtable.
+- Delete the (key,value) pair in the node's own hashtable if the last argument is <D\>.
+- Do not Delete the (key,value) pair in the node's own hashtable if the last argument is <ND\>.
 
 #### After receiving <STORE-KEY-VALUE\>
-- Store the (key, value) pair in the node's hashtable.
+- Store the (key, value) pair in the node's hashtable if the last argument is <ST\>.
+- Store the (key, value) pair in the node's SharedFolder if the last argument is <SH\>.
 
 ### After receiving <SHOW-KEYS\>
 - Send all the keys to the sender IportNo
 
-### After receiving <RETRIEVE-VALUE\>
-- Send the (key, value) of the requested key to the sender IportNo
+### After receiving <KEYS-RECEIVED\>
+- Receives all the keys from a node
+- If the last argument is <NP\>, store the elements in KeyList
+- If the last argument is <PNE\> store the elemnets in Keylist and print the keylist for user to see (As all the nodes have been travelled to)
+- If the last argument is <PE\> print the keylist for user to see (As all the nodes have been travelled to and the last n ode has no data stored in it)
 
 #### Use of <INVALID-RPC\>
 - If a node receives an invalid RPC, then the node sends <INVALID-RPC\> with all the information it receives (may be corrupted) to LogServer. 

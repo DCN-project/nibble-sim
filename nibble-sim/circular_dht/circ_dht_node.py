@@ -18,8 +18,9 @@ class CircularDhtNode(Node):
         super().setupNode(nodePortNo)
         self.myHash = self.generateHash(str(self.portNo)).hexdigest()
         self.neighbors = [self.portNo, self.portNo]     # 0 -> predecessor | 1 -> successor
-        self.hashTable = {} 
-
+        self.hashTable = {}   # Node's own hastable
+        self.keyList = {}     # List of all the keys in the network (portNo: [keys])
+        self.sharedFolder = {} # List of all shared files
     def generateHash(self, key):
         """
             Generates hash for the given key using SHA-1 algorithm.
@@ -124,6 +125,8 @@ class CircularDhtNode(Node):
         print("Press 'ENTER' after typing any of the following")
         print("send - send messages")
         print("store - store new file/data")
+        print("show - show the list of list of all keys in the network")
+        print("gd - Data retreival from neighboring nodes")
         print("a - learn about the node")
         print("h - show this menu")
         print("CTRL+C - shutdown node")
@@ -248,24 +251,70 @@ class CircularDhtNode(Node):
             self.__checkHash(data[2], data[3])
         
         elif data[0] == 'G': # <GET-VALUE>
-            if len(data) != 3:
-                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
-                logging.warning("Received invalid RPC! msg: " + msg)
-                return
-            
-            self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findKey(data[2], True)), int(data[1])) 
-        
-        elif data[0] == 'SV': # <STORE-KEY-VALUE>
             if len(data) != 4:
                 self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
                 logging.warning("Received invalid RPC! msg: " + msg)
                 return
             
-            self.hashTable.update({data[2]: data[3]})
+            if data[3] == "D":
+                self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findValue(data[2], self.hashTable, True)) + ":ST", int(data[1]))
+            elif data[3] == "ND":
+                self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findValue(data[2], self.hashTable, False)) + ":SH", int(data[1]))
+        
+        elif data[0] == 'SV': # <STORE-KEY-VALUE>
+            if len(data) != 5:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            
+            if data[4] == "ST":
+                self.hashTable.update({data[2]: data[3]})
+            elif data[4] == "SH":
+                self.sharedFolder.update({data[2]: data[3]})
+                print("******************")
+                print("SHARED FILE NAME & CONTENT: ", self.sharedFolder)
+                print("******************")
+                self.sharedFolder = {}
+
             logging.info("Data stored in node: "+ str(self.portNo))
         
+        elif data[0] == 'SHW': # <SHOW-KEYS>
+            if len(data) != 2:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            
+            keyString = str([keys for keys,_ in self.hashTable.items()])
+            
+            # Pinging the sucessor
+            if int(data[1]) != self.neighbors[1]:
+                if len(self.hashTable) > 0:
+                    self.sendMsg("KR:" + str(self.portNo) + ":" + keyString + ":" + "NP" , int(data[1]))
+                    self.sendMsg("SHW:" + str(data[1]), self.neighbors[1])
+
+            else:
+                if len(self.hashTable) > 0:
+                    self.sendMsg("KR:" + str(self.portNo) + ":" + keyString + ":" + "PNE", int(data[1]))
+                else: 
+                    self.sendMsg("KR:" + str(self.portNo) + ":" + keyString + ":" + "PE", int(data[1]))
+
+
+        elif data[0] == 'KR': # <KEYS-RECEIVED>
+            if len(data) != 4:
+                self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
+                logging.warning("Received invalid RPC! msg: " + msg)
+                return
+            
+            if data[3] == 'NP' or data[3] == 'PNE':
+                keylist = data[2].strip("']['").split("', '")
+
+                for i in keylist:
+                    self.keyList.update({i:int(data[1])})
+
+            if data[3] == "PNE" or data[3] == "PE":
+                self.__printKeys()
+
         else:
-            print("I AM HERE!!!!! ", msg)
             self.sendMsg("!:" + str(self.portNo), self.LOG_SERVER_PORT)
             logging.warning("Received invalid RPC! msg: " + msg)
 
@@ -302,6 +351,7 @@ class CircularDhtNode(Node):
                     msg = input("Enter the message: ")
                     portNo = input("Enter the target port number: ")
                     self.sendMsg(msg, int(portNo))
+
                 elif cmd == 'store':
                     key = input("Enter the key: ")
                     listLen = input("Enter the length of the value list: ")
@@ -312,28 +362,73 @@ class CircularDhtNode(Node):
                         value.append(input())
                     self.hashTable.update({key: value})
                     self.__checkHash(self.portNo, key)
+                
+                elif cmd == 'show':
+                    print("******************")
+                    print("Compiling a list of files in the network. Please wait...")
+
+                    # Pinging the sucessor
+                    if self.portNo != self.neighbors[1]:
+                        self.sendMsg("SHW:" + str(self.portNo), self.neighbors[1])
+                    else:
+                        self.__printKeys()
+                
+                elif cmd == 'gd':
+                    if not self.keyList:
+                        print("No files are present in the network")
+                        return
+                    keySel = input("Enter the file name which you wish to get: ")
+                    self.sendMsg("G:" + str(self.portNo) + ":" + str(keySel) + ":ND", int(self.__findValue(keySel, self.keyList)))
+
                 elif cmd == 'a':
                     self.__printAboutNode()
+
                 elif cmd == 'h':
                     self.__printHelp()
+
                 else:
                     print("Invalid choice!")
 
             except KeyboardInterrupt:
                 print("[KEYBOARD INTERRUPT]")
-                break
+                break          
 
-    
-    def __checkHash(self, iportNo, key):
+
+    def __printKeys(self):
+        print("******************")
+        if not self.hashTable:
+            print("No files present on your system")
+            print("******************")
+        else:
+            ctr = 0
+            print("Files you present on your system: ")
+            for keys,_ in self.hashTable.items():
+                ctr += 1
+                print(str(ctr) + ".", keys)
+            print("******************")
+
+        if not self.keyList:
+            print("No files present in the network")
+            print("******************")
+        else:
+            ctr = 0
+            print("Files present in the network: ")
+            for key,_ in self.keyList.items():
+                ctr += 1
+                print(str(ctr) + ".", key)
+            print("******************")
+
+
+    def __checkHash(self, lportNo, key):
         """
         Implements the STORE-KEY Function
-            - iportNo: lportNo-node-wanting-to-store
+            - lportNo: lportNo-node-wanting-to-store
             - key: key to be stored
         """
         predecessorHash = self.generateHash(self.neighbors[0]).hexdigest()
         successorHash = self.generateHash(self.neighbors[1]).hexdigest()
         keyHash = self.generateHash(key).hexdigest()
-        rpc = "SK:" + str(self.portNo) + ":" + str(iportNo) + ":" + str(key)
+        rpc = "SK:" + str(self.portNo) + ":" + str(lportNo) + ":" + str(key)
             
         if (keyHash <= predecessorHash) and (self.myHash > predecessorHash):
             self.sendMsg(rpc, self.neighbors[0])
@@ -344,20 +439,21 @@ class CircularDhtNode(Node):
             logging.info("Finding node for the key at predecessor node: " + str(self.neighbors[0]) + rpc)
 
         else:
-            if int(iportNo) != self.portNo:
-                self.sendMsg("G:" + str(self.portNo) + ":" + str(key), int(iportNo))
+            if int(lportNo) != self.portNo:
+                self.sendMsg("G:" + str(self.portNo) + ":" + str(key) + ":D", int(lportNo))
                 return
             logging.info("Data stored in node: " + str(self.portNo))
 
 
-    def __findKey(self, keyFind, delPair=False):
+    def __findValue(self, keyFind, dictionary, delPair=False):
         """
         Used to find values of a key in node's hashtable
             - keyFind: Key whose values are to be sent and deleted
+            - dictionary
             - delPair: When True, deletes the (key, value) pair from node's
                        hash-table
         """
-        for key, value in self.hashTable.items():
+        for key, value in dictionary.items():
             if key == keyFind:
                 val = value
                 if delPair:
