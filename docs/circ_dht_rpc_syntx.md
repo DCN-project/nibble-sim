@@ -15,7 +15,7 @@ The meaning of `<data-1>, <data-2>, ..., <data-n>` is dependent on the RPC.
 ## Joining the network
 | RPC | Message Syntax |
 | --- | --- |
-| **<JOIN-NETWORK\>** | J:<sender-lportNo\> |
+| **<JOIN-NETWORK\>** | J:<sender-lportNo\>:<requester-lportNo\> |
 | **<UPDATE-SUCCESSOR-PREDECESSOR\>** | USP:<sender-lportNo\>:<successor-lportNo\>:<predecessor-lportNo\> |
 | **<UPDATE-SUCCESSOR\>** | US:<sender-lportNo\>:<new-successor-lportNo\>|
 | **<UPDATE-PREDECESSOR\>** | UP:<sender-lportNo\>:<new-predecessor-lportNo\>|
