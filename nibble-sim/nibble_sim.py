@@ -27,32 +27,16 @@ if __name__ == '__main__':
     print('----------------------')
     print("Press CTRL+C to exit nibble-sim\n")
 
-    print("Enter the type of node:\n1) Log Server [L]\n2) Peer [P]")
-    node_type = input("Your choice [L|P]: ")
+    print("Enter the type of node:\n1) Log Server [l]\n2) Peer [p]")
+    node_type = input("Your choice [l|p]: ")
     
-    if node_type == 'L':    # running log server
+    if node_type == 'l':    # running log server
         print("Displaying the logs...")
         node = LogServer()
-        while not node.shutdown:
-            pass
-    elif node_type == 'P':  # running a peer
-        portNo = input("Port number: ")
-        node = CircularDhtNode(int(portNo))
-        print("Instantiated node. Listening on port number: ", portNo)
-        print("*** Type 'S' to send messages *** ")
-        while not node.shutdown:
-            try:
-                cmd = input('Your choice [S]: ')
-                if cmd == 'S':
-                    msg = input("Enter the message: ")
-                    portNo = input("Enter the target port number: ")
-                    node.sendMsg(msg, int(portNo))
-                else:
-                    print("Invalid choice!")
-
-            except KeyboardInterrupt:
-                print("[KEYBOARD INTERRUPT]")
-                break
+        node.run()
+    elif node_type == 'p':  # running a peer
+        node = CircularDhtNode()
+        node.run()
     else:
         print('Invalid node choice! Exiting nibble-sim...')
         
