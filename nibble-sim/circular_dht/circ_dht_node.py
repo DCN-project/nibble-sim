@@ -93,7 +93,7 @@ class CircularDhtNode(Node):
             for key in self.hashTable:
                 keysToSend.append(key)
             for key in keysToSend:
-                if self.sendMsg("SV:" + str(self.portNo) + ":" + key + ":" + str(self.__getValue(key, True)), keyRxPortNo):
+                if self.sendMsg("SV:" + str(self.portNo) + ":" + key + ":" + str(self.__getValue(key, self.hashTable, True)) + ":ST", keyRxPortNo):
                     logging.info("Transferred key: " + key + " to : " + str(keyRxPortNo))
                 else:
                     logging.warning("Could not send <STORE-KEY-VALUE>. Anyways, node is closing.")
@@ -269,9 +269,9 @@ class CircularDhtNode(Node):
                 return
             
             if data[3] == "D":
-                self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findValue(data[2], self.hashTable, True)) + ":ST", int(data[1]))
+                self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__getValue(data[2], self.hashTable, True)) + ":ST", int(data[1]))
             elif data[3] == "ND":
-                self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__findValue(data[2], self.hashTable, False)) + ":SH", int(data[1]))
+                self.sendMsg("SV:" + str(self.portNo) + ":" + data[2] + ":" + str(self.__getValue(data[2], self.hashTable, False)) + ":SH", int(data[1]))
         
         elif data[0] == 'SV': # <STORE-KEY-VALUE>
             if len(data) != 5:
@@ -333,12 +333,11 @@ class CircularDhtNode(Node):
                 return
             rqsterHash = self.generateHash(data[1]).hexdigest()
             keysToSend = []
-
             for key in self.hashTable:
                 if (self.generateHash(key).hexdigest() >= rqsterHash):
                     keysToSend.append(key)
             for key in keysToSend:
-                if self.sendMsg("SV:" + str(self.portNo) + ":" + str(key) + ":" + str(self.__getValue(key, True)), int(data[1])):
+                if self.sendMsg("SV:" + str(self.portNo) + ":" + str(key) + ":" + str(self.__getValue(key, self.hashTable, True)) + ":ST", int(data[1])):
                     logging.info("Transferred key: " + key + " to: " + str(data[1]))
                 else:
                     logging.warning("Could not send <STORE-KEY-VALUE> to the requester")
@@ -410,7 +409,7 @@ class CircularDhtNode(Node):
                         print("No files are present in the network")
                         return
                     keySel = input("Enter the file name which you wish to get: ")
-                    self.sendMsg("G:" + str(self.portNo) + ":" + str(keySel) + ":ND", int(self.__findValue(keySel, self.keyList)))
+                    self.sendMsg("G:" + str(self.portNo) + ":" + str(keySel) + ":ND", int(self.__getValue(keySel, self.keyList)))
 
                     
                 elif cmd == 'a':
@@ -509,7 +508,7 @@ class CircularDhtNode(Node):
             logging.info("Data stored in node: " + str(self.portNo))
 
 
-    def __getValue(self, keyFind, delPair=False):
+    def __getValue(self, keyFind, dictionary, delPair=False):
         """
         Used to find values of a key in node's hashtable
             - keyFind: Key whose values are to be sent and deleted
