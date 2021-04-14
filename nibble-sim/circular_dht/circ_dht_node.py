@@ -45,7 +45,7 @@ class CircularDhtNode(Node):
         self.setupNode(nodePortNo)
 
         # intimate the log server on the addition of node
-        self.sendMsg("New network started by a node listening on port: " + str(nodePortNo), self.LOG_SERVER_PORT)
+        self.sendMsg("N:" + str(nodePortNo) + ":New network started by a node", self.LOG_SERVER_PORT)
         logging.info("New network started.")
 
     def joinNetwork(self, existingPortNo, nodePortNo):
@@ -108,6 +108,9 @@ class CircularDhtNode(Node):
             if not self.sendMsg(rpc, self.neighbors[1]):
                 logging.error("Could not send UP to successor! Anyways leaving the network.")
 
+        if not self.sendMsg("X:" + str(self.portNo), self.LOG_SERVER_PORT):
+                logging.error("Could inform log-server about node closure")
+
         super().close()
 
     def sendMsg(self, msg, nodeId):
@@ -125,7 +128,7 @@ class CircularDhtNode(Node):
         """
         port = int(nodeId)
 
-        logMsg = " T:" + str(nodeId) + " " + msg
+        logMsg = "T:" + str(nodeId) + ":" + msg
         
         if port != self.LOG_SERVER_PORT:
             if not self.send(msg, port):
