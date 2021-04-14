@@ -4,6 +4,7 @@ import sys
 import time
 import threading
 import logging
+import re
 from abc import ABC, abstractmethod
 
 """ 
@@ -19,7 +20,6 @@ class Node(ABC):
         self.HOST            = '127.0.0.1'      # Constant host IP address
         self.LOG_SERVER_PORT = 31418            # Constant port number of log server
         self.MSG_FORMAT = 'utf-8'               # Constant message format
-        self.nodeID = ''
         self.shutdown = False                   # Flag to indicate node shutdown
 
     def setupNode(self, portNo):
@@ -108,8 +108,9 @@ class Node(ABC):
                 logging.error("[ERROR] accepting connections. Trying again...")
 
             except socket.error as msg:
-                logging.error("[ERROR] Cannot accept any connections: " + str(msg))
-                self.close()
+                if not bool(re.search(".WinError 10038.", str(msg))):
+                    logging.error("[ERROR] Cannot accept any connections: " + str(msg))
+                    self.close()
 
         self.sock[0].close()
         logging.debug("Socket closed")
@@ -204,28 +205,26 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    def startNewNetwork(self, nodeID, portNo):
+    def startNewNetwork(self, nodePortNo):
         """
-            Start a new P2P network with user defined nodeID and listens to portNo.
+            Start a new P2P network with user defined node and listens to nodePortNo.
 
             Parameters
             ----------
-            nodeID : str
-            portNo : int
+            nodePortNo : int
         """
         pass
 
     @abstractmethod
-    def joinNetwork(self, nodeID, portNo):
+    def joinNetwork(self, existingPortNo, nodePortNo):
         """
             Join an existing P2P network through a node on the network.
-            The way nodeID and portNo are obtained are upto the user and/or P2P protocol.
 
             Parameters
             ----------
-            nodeID : str
-                Identifier of the node in the P2P network through which new node wishes to join.
-            portNo : int 
+            existingPortNo : int
+                Port number on which the existing node is listening
+            nodePortNo : int 
                 Port number on which the node is listening
         """
         pass

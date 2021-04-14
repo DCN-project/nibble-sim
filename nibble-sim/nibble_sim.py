@@ -27,14 +27,14 @@ if __name__ == '__main__':
     print('----------------------')
     print("Press CTRL+C to exit nibble-sim\n")
 
-    print("Enter the type of node:\n1) Log Server [L]\n2) Peer [P]")
-    node_type = input("Your choice [L|P]: ")
+    print("Enter the type of node:\n1) Log Server [l]\n2) Peer [p]")
+    node_type = input("Your choice [l|p]: ")
     
-    if node_type == 'L':    # running log server
+    if node_type == 'l':    # running log server
         print("Displaying the logs...")
         node = LogServer()
         node.run()
-    elif node_type == 'P':  # running a peer
+    elif node_type == 'p':  # running a peer
         node = CircularDhtNode()
         node.run()
     else:
