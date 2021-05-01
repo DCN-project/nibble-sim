@@ -402,6 +402,7 @@ class CircularDhtNode(Node):
                     if self.portNo != self.neighbors[1]:
                         self.sendMsg("SHW:" + str(self.portNo), self.neighbors[1])
                     else:
+                        self.keyList = []
                         self.__printKeys()
                 
                 elif cmd == 'gd':
