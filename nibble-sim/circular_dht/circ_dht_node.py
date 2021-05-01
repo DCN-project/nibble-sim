@@ -406,10 +406,10 @@ class CircularDhtNode(Node):
                 
                 elif cmd == 'gd':
                     if not self.keyList:
-                        print("No files are present in the network")
-                        return
-                    keySel = input("Enter the file name which you wish to get: ")
-                    self.sendMsg("G:" + str(self.portNo) + ":" + str(keySel) + ":ND", int(self.__getValue(keySel, self.keyList)))
+                        print("There maybe no files in the network. Please execute SHOW command")
+                    else:
+                        keySel = input("Enter the file name which you wish to get: ")
+                        self.sendMsg("G:" + str(self.portNo) + ":" + str(keySel) + ":ND", int(self.__getValue(keySel, self.keyList)))
 
                     
                 elif cmd == 'a':
