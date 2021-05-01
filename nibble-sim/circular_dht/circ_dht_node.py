@@ -303,6 +303,8 @@ class CircularDhtNode(Node):
                 if len(self.hashTable) > 0:
                     self.sendMsg("KR:" + str(self.portNo) + ":" + keyString + ":" + "NP" , int(data[1]))
                     self.sendMsg("SHW:" + str(data[1]), self.neighbors[1])
+                else:
+                    self.sendMsg("SHW:" + str(data[1]), self.neighbors[1])
 
             else:
                 if len(self.hashTable) > 0:
