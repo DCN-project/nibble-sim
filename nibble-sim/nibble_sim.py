@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 '''
     Main file (To be run in each terminal)
 '''
