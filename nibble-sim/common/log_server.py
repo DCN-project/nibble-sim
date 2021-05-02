@@ -73,30 +73,30 @@ class LogServer(Node):
             if data[0] == 'T':
                 if data[2] == 'N': # Node starting a new network
                     self.curNtwrk.add_node(data[3])
-                    logging.info("Add edge: " + data[3])
+                    logging.debug("Add edge: " + data[3])
                     self.__plot()
                 elif data[2] == 'USP': # <UPDATE-SUCCESSOR-PREDECESSOR>
                     self.curNtwrk.add_edge(data[1], data[4])
-                    logging.info("Add edge: " + data[1]  + " " + data[4])
+                    logging.debug("Add edge: " + data[1]  + " " + data[4])
                     if data[5] != data[4]:
                         self.curNtwrk.add_edge(data[1], data[5])
-                        logging.info("Add edge: " + data[1] + " " + data[5])
+                        logging.debug("Add edge: " + data[1] + " " + data[5])
                     
                     if (len(self.curNtwrk.adj[data[4]]) > 2) or (len(self.curNtwrk.adj[data[5]]) > 2):
-                        print("DEBUG:adj:" + data[4] + ":" + str(len(self.curNtwrk.adj[data[5]])))
-                        print("DEBUG:adj:" + data[4] + ":" + str(len(self.curNtwrk.adj[data[5]])))
+                        logging.debug("DEBUG:adj:" + data[4] + ":" + str(len(self.curNtwrk.adj[data[5]])))
+                        logging.debug("DEBUG:adj:" + data[4] + ":" + str(len(self.curNtwrk.adj[data[5]])))
                         self.curNtwrk.remove_edge(data[4], data[5])
-                        logging.info("Remove edge: " + data[4]  + " " + data[5])
+                        logging.debug("Remove edge: " + data[4]  + " " + data[5])
                     self.__plot()
                 elif data[2] == 'X': # Node leaving the network
                     adjacents = list(self.curNtwrk.adj[data[3]])
                     if len(adjacents) == 2:
                         self.curNtwrk.add_edge(adjacents[0], adjacents[1])
-                        logging.info("Add edge: " + adjacents[0]  + " " + adjacents[1])
+                        logging.debug("Add edge: " + adjacents[0]  + " " + adjacents[1])
                     elif len(adjacents) > 2:
                         logging.error("BUG!!!!!!!!!!!!!!!!!!!!!!")
                     self.curNtwrk.remove_node(data[3])
-                    logging.info("Remove node: " + data[3])
+                    logging.debug("Remove node: " + data[3])
 
                     self.__plot()
                 
