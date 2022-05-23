@@ -4,7 +4,7 @@
 
 > All node IDs are written within parenthesis while the keys are written in square-brackets.
 
-> The nibble-sim simulated in it's current state can only be used on a single computer. The capability of using the same software across different physical devices is lacking but it can be easily incorporated in the set framework.
+> The nibble-sim simulator in it's current state can only be used on a single computer. The capability of using the same software across different physical devices is lacking but it can be easily incorporated in the set framework.
 
 > `lportNo` refers to listening port number.
 
@@ -14,8 +14,8 @@
 
 ### Assigning keys to nodes
 - Identifiers are ordered in an identifier circle modulo *2^m*.
-- Key (*k*) is assigned to the first node whose identifier is equal to or follows *k* in the identifier space. This node is called the successor node of key *k* - denoted as *succesor(k)*.
-- If identifiers are represented as a circle of numbers from *0 to (2^m - 1)*, then *succesor(k)* is the first node clockwise from *k*.
+- Key (*k*) is assigned to the first node whose identifier is equal to or follows *k* in the identifier space. This node is called the successor node of key *k* - denoted as *successor(k)*.
+- If identifiers are represented as a circle of numbers from *0 to (2^m - 1)*, then *successor(k)* is the first node clockwise from *k*.
 - The following example is taken from MIT's original paper on Chord:
 ![chord-basic-example](./images/chord_identifier_circle_eg.png)
     - Numbers in bold (0-7) are possible node IDs.

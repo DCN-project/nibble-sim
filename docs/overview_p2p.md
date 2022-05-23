@@ -22,7 +22,7 @@ Source : [Link][2]
 be exponential in relation to the number of network nodes, *n*. All nodes can potentially connect to all other nodes, giving a theoretical maximum number of connections of n(n − 1)/2; the same number as in a fully connected mesh network.
 ### Aim of a P2P network
 > To host resources at one or more peers in a network *(a storage function)* and to allow other peers to find these resources *(a routing function)* in a distributed space.
-- The resouces can be viewed as “values” and the search characteristics used to locate the resources can be viewed as “keys”.
+- The resources can be viewed as “values” and the search characteristics used to locate the resources can be viewed as “keys”.
 The function of a P2P network can be specified as a pair of methods:
     - **put(key, value)**: *store a value with an associated key (or
 set of keys) in the network*
@@ -67,5 +67,5 @@ The Internet was originally built as an overlay upon the telephone network, whil
 
 [Back to home](./Home.md)
 
-[1]:10.1109/P2P.2001.990434
+[1]:./papers-referenced/Definition%20of%20P2P%20network.pdf
 [2]:https://dl.acm.org/doi/10.1145/2501654.2501660

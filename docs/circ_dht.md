@@ -2,7 +2,7 @@
 
 - Each peer in the P2P network is assigned an ID.
 - A (key, value) pair is assigned or stored in a peer whose ID is *closet* to the key value. *Closet* means the immediate successor of the key.
-- Each peer is only aware of the other two peers, i.e., each peer knows the IP address of only two peers - it's successor, and it's predeccesor.
+- Each peer is only aware of the other two peers, i.e., each peer knows the IP address of only two peers - it's successor, and it's predecessor.
 
 ### Resolving a query
 - A query is basically asking the question, "What is the value associated with this key?"
